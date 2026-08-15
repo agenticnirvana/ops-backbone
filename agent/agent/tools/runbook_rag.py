@@ -5,7 +5,6 @@ from __future__ import annotations
 import json
 import math
 import os
-from pathlib import Path
 
 from rag.embeddings import embed_text
 from rag.indexer import chroma_path, read_active_collection

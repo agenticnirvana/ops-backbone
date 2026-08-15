@@ -84,6 +84,7 @@ def test_retrieve_gate_generic_500_is_unmatched():
 
 def test_api_health():
     from fastapi.testclient import TestClient
+
     from api.main import app
 
     client = TestClient(app)

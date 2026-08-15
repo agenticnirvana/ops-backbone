@@ -61,6 +61,7 @@ def test_hitl_denied_no_ticket():
 
 def test_api_approve_endpoint():
     from fastapi.testclient import TestClient
+
     from api.main import app
 
     client = TestClient(app)

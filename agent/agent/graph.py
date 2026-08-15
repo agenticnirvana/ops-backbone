@@ -11,12 +11,12 @@ from langgraph.graph import END, StateGraph
 from agent.guardrails import validate_alert_input
 from agent.llm import call_llm
 from agent.state import AgentState
-from observability.trace_context import trace_graph_node
 from agent.tools.log_query import query_logs
 from agent.tools.metrics_query import query_metrics
 from agent.tools.policy_check import check_action_allowed
 from agent.tools.runbook_rag import retrieve_with_gate, unmatched_recommendation
 from agent.tools.ticket_create import create_ticket
+from observability.trace_context import trace_graph_node
 
 DESTRUCTIVE_KEYWORDS = ("restart", "rollback", "kill", "delete", "scale-down")
 

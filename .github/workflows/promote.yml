@@ -41,6 +41,8 @@ jobs:
         working-directory: ${{ steps.course.outputs.root }}/agent
         env:
           MOCK_LLM: "true"
+          LOG_QUERY_BACKEND: fixture
+          METRICS_QUERY_BACKEND: fixture
         run: python -m evals.run_evals
 
   approve-and-promote:

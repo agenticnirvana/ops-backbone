@@ -8,10 +8,10 @@ from contextlib import asynccontextmanager
 from typing import Any
 
 from fastapi import FastAPI, HTTPException
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 
-from agent.guardrails import validate_alert_input
 from agent.graph import get_graph
+from agent.guardrails import validate_alert_input
 from notifications.slack import notify_hitl_required
 from observability.dashboard_metrics import record_run_finish as persist_run_finish
 from observability.dashboard_metrics import record_run_start as persist_run_start

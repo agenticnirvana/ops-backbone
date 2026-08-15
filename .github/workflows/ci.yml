@@ -71,7 +71,11 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+      # gitleaks-action builds `before^..sha`. That fails when `before` is the
+      # repo's root commit (no parent). Scan full history from HEAD instead.
       - name: Gitleaks
-        uses: gitleaks/gitleaks-action@v2
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          VERSION=8.24.3
+          curl -sSfL "https://github.com/gitleaks/gitleaks/releases/download/v${VERSION}/gitleaks_${VERSION}_linux_x64.tar.gz" \
+            | tar -xz gitleaks
+          ./gitleaks detect --source . --verbose --redact --exit-code 1

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import os
 import sys
 import time
 import uuid
@@ -79,6 +80,11 @@ def _case_passed(case: dict, metrics: dict[str, float]) -> bool:
 
 
 def run_evals(*, session_prefix: str | None = None) -> dict:
+    # CI / local golden-set has no Prometheus or Loki. Production compose sets URLs.
+    if os.getenv("MOCK_LLM", "").lower() == "true":
+        os.environ.setdefault("LOG_QUERY_BACKEND", "fixture")
+        os.environ.setdefault("METRICS_QUERY_BACKEND", "fixture")
+
     graph = get_graph()
     cases = load_golden()
     scores = {

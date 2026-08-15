@@ -2,10 +2,10 @@
 
 from __future__ import annotations
 
+import json
 import os
 
 import httpx
-import json
 
 
 def query_metrics(service: str) -> dict:

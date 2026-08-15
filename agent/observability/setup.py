@@ -42,6 +42,7 @@ def flush_langfuse(design_id: str | None = None) -> None:
         pass
     try:
         from langfuse import Langfuse
+
         from observability.design_keys import langfuse_keys
 
         pk, sk = langfuse_keys(design_id)
