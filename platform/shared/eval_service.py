@@ -20,8 +20,12 @@ def load_golden_cases() -> list[dict[str, Any]]:
     return json.loads(GOLDEN_PATH.read_text(encoding="utf-8"))
 
 
-def run_eval_suite(*, triggered_by: str | None = None, source: str = "platform") -> dict[str, Any]:
-    """Execute golden_alerts.json against the agent graph; persist + score."""
+def run_eval_suite(*, triggered_by: str | None = None, source: str = "platform", design_id: str | None = None) -> dict[str, Any]:
+    """Execute golden_alerts.json against the agent graph; persist + publish to this design's eval tool."""
+    from shared.design_stack import get_stack, normalize_design_id
+
+    did = normalize_design_id(design_id)
+    stack = get_stack(did)
     started = datetime.now(timezone.utc)
     run_id = str(uuid.uuid4())
     try:
@@ -29,8 +33,10 @@ def run_eval_suite(*, triggered_by: str | None = None, source: str = "platform")
 
         report = run_evals(session_prefix=run_id)
         report["run_id"] = run_id
-        _log_mlflow(report, run_id)
-        _push_langfuse_eval_scores(report, run_id)
+        report["design_id"] = did
+        from shared.eval_backends import publish_eval
+
+        report["publish"] = publish_eval(report, design_id=did, run_id=run_id)
         saved = save_eval_run(
             report=report,
             triggered_by=triggered_by,
@@ -38,6 +44,9 @@ def run_eval_suite(*, triggered_by: str | None = None, source: str = "platform")
             started_at=started,
             finished_at=datetime.now(timezone.utc),
         )
+        saved["design_id"] = did
+        saved["eval_backend"] = stack.get("eval_backend")
+        saved["publish"] = report.get("publish")
         _record_eval_gate(saved, triggered_by=triggered_by, source=source)
         return saved
     except Exception as exc:
@@ -62,11 +71,40 @@ def run_eval_suite(*, triggered_by: str | None = None, source: str = "platform")
         return saved
 
 
-def get_eval_dashboard() -> dict[str, Any]:
+def get_eval_dashboard(*, design_id: str | None = None) -> dict[str, Any]:
+    from shared.design_stack import get_stack, langfuse_public_url, normalize_design_id
+
+    did = normalize_design_id(design_id)
+    stack = get_stack(did)
+    backend = stack.get("eval_backend") or "langfuse"
     golden = load_golden_cases()
     latest = get_latest_eval_run()
     history = list_eval_runs(limit=10)
+    guide = {
+        "langfuse": {
+            "tool": "Langfuse",
+            "url": langfuse_public_url(),
+            "where": "Left nav: Tracing · Playground · Prompts · Datasets · Evaluation (LLM-as-judge). After Eval Suite: Datasets → ops-triage-golden. Settings → LLM connection → Ollama llama3.2 for Playground and judges.",
+            "login": "a@ex.com / 123456789 · project Design 1 Ops Triage",
+        },
+        "phoenix": {
+            "tool": "Arize Phoenix",
+            "url": os.getenv("PHOENIX_PUBLIC_URL", "http://localhost:6006"),
+            "where": "Datasets / Experiments · Evaluations → llm_judge_groundedness · Traces",
+            "login": "No login · http://localhost:6006",
+        },
+        "mlflow": {
+            "tool": "MLflow",
+            "url": os.getenv("MLFLOW_PUBLIC_URL", "http://localhost:5001"),
+            "where": "Experiments → ops-triage-d3 · run eval-* · artifacts eval_report.json + llm_judge.md · Traces for llm-as-judge spans",
+            "login": "No login · http://localhost:5001",
+        },
+    }.get(backend, {})
     return {
+        "design_id": did,
+        "eval_backend": backend,
+        "eval_tool": stack.get("llmops"),
+        "eval_guide": guide,
         "golden_count": len(golden),
         "golden_cases": [
             {
@@ -111,52 +149,5 @@ def _record_eval_gate(saved: dict[str, Any], *, triggered_by: str | None, source
             summary=f"{ok}/{cases} golden cases · {'pass' if passed else 'fail'}",
             details={"eval_run_id": saved.get("id"), "averages": saved.get("averages") or {}},
         )
-    except Exception:
-        pass
-
-
-def _log_mlflow(report: dict[str, Any], run_id: str) -> None:
-    if not os.getenv("MLFLOW_TRACKING_URI"):
-        return
-    try:
-        import mlflow
-
-        mlflow.set_experiment(os.getenv("MLFLOW_EVAL_EXPERIMENT", "ops-triage-eval-gate"))
-        with mlflow.start_run(run_name=f"eval-{run_id[:8]}"):
-            for key, value in (report.get("averages") or {}).items():
-                mlflow.log_metric(key, float(value))
-            mlflow.log_metric("eval_gate_pass", 1.0 if report.get("passed") else 0.0)
-            mlflow.log_param("case_count", report.get("case_count", 0))
-    except Exception:
-        pass
-
-
-def _push_langfuse_eval_scores(report: dict[str, Any], run_id: str) -> None:
-    if not os.getenv("LANGFUSE_PUBLIC_KEY") or not os.getenv("LANGFUSE_SECRET_KEY"):
-        return
-    try:
-        import base64
-
-        import httpx
-        from langfuse import Langfuse
-
-        lf = Langfuse(
-            public_key=os.getenv("LANGFUSE_PUBLIC_KEY"),
-            secret_key=os.getenv("LANGFUSE_SECRET_KEY"),
-            host=os.getenv("LANGFUSE_HOST", "http://langfuse:3000"),
-        )
-        trace = lf.trace(name="eval-suite-run", session_id=f"eval-{run_id}")
-        averages = report.get("averages") or {}
-        scores = [
-            ("eval_rag_recall", averages.get("rag_recall_at_3", 0), "RAG recall@3 average"),
-            ("eval_groundedness", averages.get("groundedness", 0), "Groundedness average"),
-            ("eval_correctness", averages.get("correctness", 0), "Runbook correctness average"),
-            ("eval_tool_accuracy", averages.get("tool_call_accuracy", 0), "Tool/HITL accuracy"),
-            ("eval_p95_latency_ms", averages.get("p95_latency_ms", 0), "P95 latency ms"),
-            ("eval_gate_pass", 1 if report.get("passed") else 0, "Eval gate pass/fail"),
-        ]
-        for name, value, comment in scores:
-            trace.score(name=name, value=float(value), comment=comment)
-        lf.flush()
     except Exception:
         pass

@@ -12,6 +12,9 @@ scripts/test-results/
 *.pyo
 .coverage
 htmlcov/
+.cursor/
+**/.cursor/
+.cursorignore
 deploy/secrets/*.json
 deploy/secrets/*.pem
 deploy/secrets/*.key

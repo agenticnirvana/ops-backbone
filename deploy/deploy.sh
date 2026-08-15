@@ -72,7 +72,7 @@ Design 3 (`./deploy.sh up-d3`) — native UIs alongside D2:
   OpenSearch API         http://localhost:9201
   Mimir                  http://localhost:9009
   Tempo                  http://localhost:3200
-  Langfuse               http://localhost:3000  (a@ex.com / 123456789)
+  Langfuse               http://localhost:3000  (a@ex.com / 123456789) · v3 Tracing / Playground / Prompts / Datasets / Evaluation
   OPA                    http://localhost:8181
   AgentRegistry  http://localhost:12121
   Agent API      http://localhost:8002
@@ -232,8 +232,10 @@ case "$CMD" in
     ensure_env
     set -a && source .env && set +a
     echo "Starting Design 3 tool UIs (OpenSearch, Dashboards, Mimir, Tempo, Langfuse)…"
-    "${COMPOSE[@]}" --profile design-3 up -d \
-      opensearch opensearch-dashboards mimir tempo fluent-bit opensearch-seed langfuse prometheus alertmanager opa
+    "${COMPOSE[@]}" --profile design-1 --profile design-3 up -d \
+      opensearch opensearch-dashboards mimir tempo fluent-bit opensearch-seed \
+      langfuse-postgres-init langfuse-minio-init langfuse-clickhouse langfuse-redis langfuse-worker langfuse \
+      prometheus alertmanager opa
     echo "D3 UIs:"
     echo "  OpenSearch Dashboards  http://localhost:5602"
     echo "  OpenSearch API         http://localhost:9201"

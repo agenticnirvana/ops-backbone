@@ -620,7 +620,7 @@ function nbEvalHtml() {
   return `
     <p class="nb-kicker">Ch.3 · Evaluation</p>
     <h2 class="nb-serif">Traces, evals, OTEL</h2>
-    <p class="nb-lede">Langfuse for spans. MLflow for golden alerts. OTEL so you’re not locked to one UI.</p>
+    <p class="nb-lede">Each design teaches one eval tool in depth — traces, experiments, and LLM-as-judge in the same UI. OTEL stays for infra traces.</p>
     <p>If retrieval misses <code>checkout-redis-pool</code>, CI should fail — not your on-call.</p>
     <button type="button" class="nb-cta" data-nb-jump="evaluation" data-tab="eval-gate">Open eval gate →</button>`;
 }

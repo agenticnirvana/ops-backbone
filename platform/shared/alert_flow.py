@@ -14,6 +14,12 @@ from shared.design_stack import get_stack, normalize_design_id
 from shared.langfuse_seed import seed_walkthrough_trace
 from shared.opa_guardrails import build_evaluation_result, is_destructive
 
+try:
+    from agent.tools.runbook_rag import assess_runbook_match, unmatched_recommendation
+except Exception:  # pragma: no cover — gateway always has agent on path
+    assess_runbook_match = None  # type: ignore
+    unmatched_recommendation = None  # type: ignore
+
 FIXTURES_DIR = Path(__file__).resolve().parents[2] / "agent" / "sample_data" / "alerts"
 METRICS_FILE = Path(__file__).resolve().parents[2] / "agent" / "sample_data" / "metrics" / "services.json"
 LOGS_DIR = Path(__file__).resolve().parents[2] / "agent" / "sample_data" / "logs"
@@ -221,10 +227,16 @@ def _loki_logs(service: str, limit: int = 8) -> list[dict[str, Any]]:
     return rows[:limit]
 
 
-def _query_chroma(*, service: str, error_summary: str, runbook_id: str | None = None) -> dict[str, Any]:
-    query = f"{service} {error_summary}".strip()
+def _query_chroma(
+    *,
+    service: str,
+    error_summary: str,
+    log_snippet: str = "",
+    runbook_id: str | None = None,
+) -> dict[str, Any]:
+    query = f"{service} {error_summary} {log_snippet}".strip()
     body: dict[str, Any] = {"query": query, "n_results": 3, "service": service}
-    if runbook_id:
+    if runbook_id and runbook_id not in ("none", "unknown"):
         body["runbook_id"] = runbook_id
     try:
         with httpx.Client(timeout=30.0) as client:
@@ -236,12 +248,19 @@ def _query_chroma(*, service: str, error_summary: str, runbook_id: str | None = 
             r.raise_for_status()
             data = r.json()
         chunks = data.get("results") or data.get("chunks") or []
+        match = (
+            assess_runbook_match(chunks, query=query, service=service)
+            if assess_runbook_match
+            else {"matched": bool(chunks), "runbook_id": (chunks[0].get("runbook_id") if chunks else None), "nearest": None, "similarity": 0}
+        )
+        selected = match.get("runbook_id") if match.get("matched") else "none"
         return {
             "collection": data.get("collection") or "runbooks",
             "query": query,
             "top_k": 3,
             "chunks": chunks[:3],
-            "selected_runbook_id": (chunks[0].get("runbook_id") if chunks else runbook_id),
+            "selected_runbook_id": selected,
+            "match": match,
         }
     except Exception as exc:
         return {
@@ -249,7 +268,8 @@ def _query_chroma(*, service: str, error_summary: str, runbook_id: str | None = 
             "query": query,
             "top_k": 3,
             "chunks": [],
-            "selected_runbook_id": runbook_id or SERVICE_TO_RUNBOOK.get(service),
+            "selected_runbook_id": "none",
+            "match": {"matched": False, "runbook_id": "none", "reason": "query_error", "nearest": None, "similarity": 0},
             "error": str(exc),
         }
 
@@ -297,7 +317,7 @@ def _resolve_entry_and_body(
             "error_summary": custom_alert.get("error_summary", "Custom alert"),
             "log_snippet": custom_alert.get("log_snippet", ""),
         }
-        runbook_id = custom_alert.get("runbook_id") or SERVICE_TO_RUNBOOK.get(service, "unknown")
+        runbook_id = custom_alert.get("runbook_id") or "none"
         entry = {
             "id": "custom",
             "fixture": "",
@@ -331,14 +351,26 @@ def _agent_pipeline_steps(
     agent_response: dict[str, Any] | None,
     stack: dict[str, Any],
 ) -> list[dict[str, Any]]:
+    match = chroma.get("match") or {}
+    grounded = bool(match.get("matched"))
     runbook_id = (agent_response or {}).get("runbook_id") or chroma.get("selected_runbook_id") or entry["runbook_id"]
-    recommendation = (agent_response or {}).get("recommendation") or (
-        f"Follow runbook `{runbook_id}`: inspect {entry['service']} metrics/logs, apply remediation steps."
-    )
+    if (agent_response or {}).get("runbook_gap") or not grounded:
+        if not (agent_response or {}).get("runbook_id") or (agent_response or {}).get("runbook_gap"):
+            runbook_id = "none"
+    if runbook_id in ("unknown", None, ""):
+        runbook_id = "none" if not grounded else (entry.get("runbook_id") or "none")
+    recommendation = (agent_response or {}).get("recommendation")
+    if not recommendation:
+        if grounded:
+            recommendation = f"Follow runbook `{runbook_id}`: inspect {entry['service']} metrics/logs, apply remediation steps."
+        elif unmatched_recommendation:
+            recommendation = unmatched_recommendation(alert=alert_body, match=match)
+        else:
+            recommendation = "No grounded runbook. Investigate logs/metrics, open a ticket, then draft a runbook."
     classification = (agent_response or {}).get("classification") or f"{entry['severity']} · {entry['service']} degradation"
     requires_hitl = (agent_response or {}).get("requires_hitl")
     if requires_hitl is None:
-        requires_hitl = entry["severity"] == "P1" or is_destructive(recommendation)
+        requires_hitl = entry["severity"] == "P1" or is_destructive(recommendation) or not grounded
 
     opa_result = build_evaluation_result(
         service=entry["service"],
@@ -376,16 +408,26 @@ def _agent_pipeline_steps(
                 "collection": chroma.get("collection"),
                 "query": chroma.get("query"),
                 "selected_runbook_id": runbook_id,
+                "match": match,
+                "unmatched": not grounded,
                 "chunks": [
                     {
                         "runbook_id": c.get("runbook_id"),
                         "score": c.get("score") or c.get("distance"),
-                        "preview": (c.get("document") or c.get("text") or "")[:160],
+                        "similarity": c.get("similarity"),
+                        "preview": (c.get("document") or c.get("text") or c.get("preview") or "")[:160],
+                        "rejected": (not grounded) and i == 0,
                     }
-                    for c in chunks[:3]
+                    for i, c in enumerate(chunks[:3])
                 ],
             },
-            "payload": {"node": "retrieve_runbook", "backend": stack["vector"], "query": chroma, "runbook_id": runbook_id},
+            "payload": {
+                "node": "retrieve_runbook",
+                "backend": stack["vector"],
+                "query": chroma,
+                "runbook_id": runbook_id,
+                "match": match,
+            },
         },
         {
             "id": "agent_logs",
@@ -411,8 +453,10 @@ def _agent_pipeline_steps(
             "visual": {
                 "type": "recommendation",
                 "runbook_id": runbook_id,
-                "text": recommendation[:500],
+                "text": recommendation[:700],
                 "destructive": is_destructive(recommendation),
+                "unmatched": not grounded,
+                "match": match,
             },
             "payload": {"node": "recommend", "recommendation": recommendation, "runbook_id": runbook_id},
         },
@@ -528,7 +572,8 @@ def simulate_alert_flow(
     chroma = _query_chroma(
         service=entry["service"],
         error_summary=alert_body.get("error_summary", ""),
-        runbook_id=entry.get("runbook_id"),
+        log_snippet=alert_body.get("log_snippet", ""),
+        runbook_id=None if entry.get("id") == "custom" else entry.get("runbook_id"),
     )
 
     if entry["metric_key"] == "error_rate_5m":
@@ -615,7 +660,7 @@ def simulate_alert_flow(
                 agent_response = r.json()
             ingestion_steps[-1]["response"] = agent_response
             ingestion_steps[-1]["status"] = "completed"
-            if agent_response.get("runbook_id"):
+            if agent_response.get("runbook_id") and not agent_response.get("runbook_gap"):
                 chroma["selected_runbook_id"] = agent_response["runbook_id"]
         except Exception as exc:
             fire_error = str(exc)
@@ -673,6 +718,8 @@ def simulate_alert_flow(
 
     hitl = next((s for s in pipeline_steps if s["id"] == "hitl_gate"), pipeline_steps[-1])
     rec_step = next((s for s in pipeline_steps if s["id"] == "agent_recommend"), pipeline_steps[4])
+    match = chroma.get("match") or (agent_response or {}).get("runbook_match") or {}
+    grounded = bool(match.get("matched")) and not (agent_response or {}).get("runbook_gap")
     return {
         "alert_id": entry.get("id") or "custom",
         "alert_name": entry["alert_name"],
@@ -681,6 +728,8 @@ def simulate_alert_flow(
         "design_id": did,
         "stack": {k: stack[k] for k in ("name", "vector", "logs", "metrics", "policy", "llmops", "dashboards") if k in stack},
         "runbook_id": chroma.get("selected_runbook_id") or entry["runbook_id"],
+        "runbook_gap": not grounded,
+        "runbook_match": match,
         "phases": PHASE_LABELS,
         "steps": all_steps,
         "external_views": external_views,

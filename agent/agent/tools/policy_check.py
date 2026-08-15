@@ -20,6 +20,15 @@ def check_action_allowed(*, service: str, recommendation: str, severity: str) ->
         allowed, reason = _check_action_allowed_impl(service=service, recommendation=recommendation, severity=severity)
         if span:
             span.end(output={"allowed": allowed, "reason": reason})
+        from observability.trace_context import emit_event
+
+        emit_event(
+            "⚖️ Event · Policy allow" if allowed else "⚖️ Event · Policy deny",
+            input={"service": service, "severity": severity},
+            output={"allowed": allowed, "reason": reason},
+            metadata={"phase": "4-guardrails", "integration": backend},
+            level="DEFAULT" if allowed else "WARNING",
+        )
         return allowed, reason
 
 

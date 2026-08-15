@@ -138,7 +138,12 @@ class LangfuseGraphHandler(BaseCallbackHandler):
     ) -> None:
         parent = self._parent(parent_run_id)
         name = (serialized or {}).get("name") or "LLM · LangChain"
-        obs = parent.generation(name=str(name), input={"prompts": prompts[:3]})
+        obs = parent.generation(
+            name=str(name),
+            input={"prompts": prompts[:3]},
+            model=os.getenv("LLM_MODEL", "llama3.2"),
+            metadata={"type": "llm"},
+        )
         self._observations[run_id] = obs
 
     def on_llm_end(self, response: Any, *, run_id: UUID, **kwargs: Any) -> None:
@@ -162,7 +167,11 @@ class LangfuseGraphHandler(BaseCallbackHandler):
     ) -> None:
         parent = self._parent(parent_run_id)
         name = (serialized or {}).get("name") or "tool"
-        obs = parent.span(name=str(name), input={"input": input_str}, metadata={"type": "tool"})
+        obs = parent.span(
+            name=f"🔧 Tool · {name}",
+            input={"input": input_str},
+            metadata={"type": "tool"},
+        )
         self._observations[run_id] = obs
 
     def on_tool_end(self, output: str, *, run_id: UUID, **kwargs: Any) -> None:

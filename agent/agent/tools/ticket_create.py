@@ -62,10 +62,10 @@ def _create_ticket_impl(payload: dict) -> dict:
     ticket_id = f"OPS-{uuid.uuid4().hex[:8].upper()}"
     return {
         "ticket_id": ticket_id,
-        "service": service,
-        "severity": severity,
+        "service": payload["service"],
+        "severity": payload["severity"],
         "status": "open",
-        "summary": recommendation[:120],
-        "runbook_id": runbook_id,
+        "summary": str(payload.get("recommendation") or "")[:120],
+        "runbook_id": payload["runbook_id"],
         "url": f"https://ops.example.com/tickets/{ticket_id}",
     }

@@ -27,16 +27,30 @@ def _tool_calls(state: AgentState) -> list[dict]:
     return list(state.get("mcp_tool_calls") or [])
 
 
-def _retrieve(alert: dict, calls: list[dict]) -> tuple[list, str]:
+def _retrieve(alert: dict, calls: list[dict]) -> tuple[list, str, dict]:
     service = alert.get("service", "")
-    query = f"{service} {alert.get('error_summary', '')}"
+    query = f"{service} {alert.get('error_summary', '')} {alert.get('log_snippet', '')}".strip()
+    from agent.tools.runbook_rag import (
+        assess_runbook_match,
+        format_runbook_context,
+        retrieve_with_gate,
+    )
+
     if _use_mcp_tools():
         data = mcp_retrieve_runbooks(query, service=service, top_k=3, calls=calls)
-        return data["chunks"], data["context"]
-    from agent.tools.runbook_rag import format_runbook_context, retrieve_runbooks
-
-    chunks = retrieve_runbooks(query, service=service, top_k=3)
-    return chunks, format_runbook_context(chunks)
+        chunks = data.get("chunks") or []
+        match = assess_runbook_match(chunks, query=query, service=service)
+        if match["matched"]:
+            return chunks, data.get("context") or format_runbook_context(chunks), match
+        nearest = (match.get("nearest") or {}).get("runbook_id") or "none"
+        pct = int(round(float(match.get("similarity") or 0) * 100))
+        ctx = (
+            "No grounded runbook. Do not follow a nearest-neighbor document. "
+            f"Rejected candidate: {nearest} at {pct}% similarity."
+        )
+        return chunks, ctx, match
+    gated = retrieve_with_gate(query, service=service, top_k=3)
+    return gated["chunks"], gated["context"], gated["match"]
 
 
 def classify_node(state: AgentState) -> AgentState:
@@ -54,8 +68,16 @@ def classify_node(state: AgentState) -> AgentState:
 
 def retrieve_node(state: AgentState) -> AgentState:
     calls = _tool_calls(state)
-    chunks, ctx = _retrieve(state.get("alert", {}), calls)
-    return {"runbook_chunks": chunks, "runbook_context": ctx, "mcp_tool_calls": calls}
+    chunks, ctx, match = _retrieve(state.get("alert", {}), calls)
+    grounded = bool(match.get("matched"))
+    return {
+        "runbook_chunks": chunks,
+        "runbook_context": ctx,
+        "runbook_match": match,
+        "runbook_gap": not grounded,
+        "runbook_id": match.get("runbook_id") if grounded else "none",
+        "mcp_tool_calls": calls,
+    }
 
 
 def metrics_node(state: AgentState) -> AgentState:
@@ -80,11 +102,22 @@ def metrics_node(state: AgentState) -> AgentState:
 
 def recommend_node(state: AgentState) -> AgentState:
     alert = state.get("alert", {})
+    match = state.get("runbook_match") or {}
+    grounded = bool(match.get("matched"))
+    if grounded:
+        system = "Recommend remediation. JSON: recommendation, runbook_id, citations."
+    else:
+        system = (
+            "There is NO grounded runbook for this alert. Do not invent or reuse a catalog runbook_id. "
+            "Return JSON: recommendation (investigation steps), runbook_id (must be the string none), "
+            "citations (empty list), runbook_gap (true)."
+        )
     raw = call_llm(
-        "Recommend remediation. JSON: recommendation, runbook_id, citations.",
+        system,
         json.dumps({
             "alert": alert,
             "runbook_context": state.get("runbook_context", ""),
+            "runbook_match": match,
             "logs": state.get("logs", []),
             "metrics": state.get("metrics", {}),
         }),
@@ -92,10 +125,25 @@ def recommend_node(state: AgentState) -> AgentState:
     try:
         data = json.loads(raw.strip().strip("`").replace("json", ""))
     except json.JSONDecodeError:
-        data = {"recommendation": raw, "runbook_id": "unknown", "citations": []}
+        data = {"recommendation": raw, "runbook_id": "none" if not grounded else "unknown", "citations": []}
     rec = data.get("recommendation", "")
-    hitl = state.get("requires_hitl") or any(k in rec.lower() for k in ("restart", "kill", "rollback"))
-    return {"recommendation": rec, "runbook_id": data.get("runbook_id"), "requires_hitl": hitl}
+    if not grounded:
+        from agent.tools.runbook_rag import unmatched_recommendation
+
+        data["runbook_id"] = "none"
+        rec = rec or unmatched_recommendation(alert=alert, match=match)
+    hitl = (
+        state.get("requires_hitl")
+        or any(k in rec.lower() for k in ("restart", "kill", "rollback"))
+        or not grounded
+    )
+    return {
+        "recommendation": rec,
+        "runbook_id": data.get("runbook_id") if grounded else "none",
+        "requires_hitl": hitl,
+        "runbook_gap": not grounded,
+        "runbook_match": match,
+    }
 
 
 def execute_node(state: AgentState) -> AgentState:

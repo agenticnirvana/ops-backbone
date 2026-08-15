@@ -103,7 +103,7 @@ const SECTION_LEARNING_TIPS = {
     default: {
       icon: '📊',
       title: 'Evaluation — trust but verify',
-      learn: '{llmops} captures every agent span. MLflow logs eval metrics. The eval gate runs golden alerts against the live graph — regression tests for RAG quality.',
+      learn: '{llmops} is the only eval tool for this design: traces, experiments, and LLM-as-judge. Run Eval Suite, then open {llmops} — do not look for the other vendors here.',
       try: 'Run a pipeline in Operations, then open Agent Analytics and {llmops} Trace.',
       practice: 'Eval & Scores runs 8 golden cases on demand — the same suite is the required GitHub check eval-gate / golden-set.',
       action: { section: 'evaluation', tab: 'eval-gate', label: 'Run eval suite' },
@@ -111,7 +111,7 @@ const SECTION_LEARNING_TIPS = {
     'eval-gate': {
       icon: '✅',
       title: 'Eval gate — how it works',
-      learn: 'Golden alerts (agent/evals/golden_alerts.json) invoke the real LangGraph agent. Each case is scored on RAG recall, groundedness, runbook correctness, HITL behavior, and latency.',
+      learn: 'Golden alerts invoke the live graph. Each case is scored on RAG recall, groundedness, correctness, HITL, latency, and an LLM-as-judge groundedness score. Results publish only to {llmops}.',
       try: 'Click Run Eval Suite — takes ~30–60s. Watch cases populate and gate PASS/FAIL banner.',
       practice: 'Fail a case on purpose: stop runbook-ingestion, re-run eval, see RAG recall drop. Reindex and pass again.',
       action: { section: 'evaluation', tab: 'eval-gate', label: 'Run eval suite', actionFn: 'runEval' },
@@ -128,8 +128,8 @@ const SECTION_LEARNING_TIPS = {
     'eval-trace': {
       icon: '🔍',
       title: '{llmops} trace viewer',
-      learn: 'Every graph node becomes a span: classify, retrieve_runbook, query_logs, etc. Use this to debug slow or wrong recommendations.',
-      try: 'After Run Pipeline, this tab loads spans for the last thread_id automatically.',
+      learn: 'Langfuse v3 (the GitHub product): Tracing, Playground, Prompts, Datasets, Evaluation / LLM-as-judge. Observation types: SPAN, GENERATION, EVENT.',
+      try: 'Open Langfuse :3000. Tracing after a pipeline run. Playground + Evaluation after Settings → LLM connection to Ollama llama3.2.',
       practice: 'Compare span order with Operations → Agent Run animation.',
       action: { section: 'operations', tab: 'ops-incident', label: 'Run pipeline' },
     },

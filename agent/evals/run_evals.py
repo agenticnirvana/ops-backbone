@@ -10,6 +10,7 @@ from pathlib import Path
 
 from agent.graph import get_graph
 from agent.tools.runbook_rag import retrieve_runbooks
+from evals.llm_judge import judge_recommendation
 from observability.setup import build_invoke_config, flush_langfuse
 
 EVALS_DIR = Path(__file__).parent
@@ -85,6 +86,7 @@ def run_evals(*, session_prefix: str | None = None) -> dict:
         "groundedness": [],
         "tool_call_accuracy": [],
         "correctness": [],
+        "llm_judge_groundedness": [],
         "latency_ms": [],
     }
     case_results: list[dict] = []
@@ -106,18 +108,30 @@ def run_evals(*, session_prefix: str | None = None) -> dict:
             if out.get("runbook_id") == case.get("expected_runbook_id") or case.get("expected_runbook_id") is None
             else 0.0
         )
+        try:
+            judge = judge_recommendation(
+                alert=alert,
+                recommendation=out.get("recommendation") or "",
+                expected_runbook_id=case.get("expected_runbook_id"),
+                actual_runbook_id=out.get("runbook_id"),
+                grounded_keywords=case.get("grounded_keywords") or [],
+            )
+        except Exception:
+            judge = {"score": 0.5, "reason": "judge unavailable", "raw": ""}
 
         scores["latency_ms"].append(latency_ms)
         scores["rag_recall_at_3"].append(rag)
         scores["groundedness"].append(grounded)
         scores["tool_call_accuracy"].append(tool_acc)
         scores["correctness"].append(correct)
+        scores["llm_judge_groundedness"].append(float(judge.get("score") or 0.5))
 
         metrics = {
             "rag_recall_at_3": rag,
             "groundedness": grounded,
             "tool_call_accuracy": tool_acc,
             "correctness": correct,
+            "llm_judge_groundedness": float(judge.get("score") or 0.5),
             "latency_ms": latency_ms,
         }
         case_results.append(
@@ -132,6 +146,8 @@ def run_evals(*, session_prefix: str | None = None) -> dict:
                 "expects_hitl": bool(case.get("expects_hitl")),
                 "recommendation_preview": (out.get("recommendation") or "")[:160],
                 "metrics": metrics,
+                "llm_judge": judge,
+                "llm_judge_reason": judge.get("reason"),
                 "passed": _case_passed(case, metrics),
                 "session_id": session_id,
             }

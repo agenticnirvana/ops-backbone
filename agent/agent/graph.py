@@ -15,7 +15,7 @@ from observability.trace_context import trace_graph_node
 from agent.tools.log_query import query_logs
 from agent.tools.metrics_query import query_metrics
 from agent.tools.policy_check import check_action_allowed
-from agent.tools.runbook_rag import format_runbook_context, retrieve_runbooks, SERVICE_TO_RUNBOOK
+from agent.tools.runbook_rag import retrieve_with_gate, unmatched_recommendation
 from agent.tools.ticket_create import create_ticket
 
 DESTRUCTIVE_KEYWORDS = ("restart", "rollback", "kill", "delete", "scale-down")
@@ -53,11 +53,14 @@ def classify_node(state: AgentState) -> AgentState:
 def retrieve_runbook_node(state: AgentState) -> AgentState:
     alert = state.get("alert", {})
     service = alert.get("service", "")
-    query = f"{service} {alert.get('error_summary', '')} {alert.get('log_snippet', '')}"
-    chunks = retrieve_runbooks(query, service=service, top_k=3)
+    query = f"{service} {alert.get('error_summary', '')} {alert.get('log_snippet', '')}".strip()
+    gated = retrieve_with_gate(query, service=service, top_k=3)
     return {
-        "runbook_chunks": chunks,
-        "runbook_context": format_runbook_context(chunks),
+        "runbook_chunks": gated["chunks"],
+        "runbook_context": gated["context"],
+        "runbook_match": gated["match"],
+        "runbook_gap": gated["gap"],
+        "runbook_id": gated["runbook_id"],
     }
 
 
@@ -78,55 +81,81 @@ def query_metrics_node(state: AgentState) -> AgentState:
 @trace_graph_node("recommend")
 def recommend_node(state: AgentState) -> AgentState:
     alert = state.get("alert", {})
-    system = (
-        "Recommend remediation for the ops alert. Return JSON: "
-        "recommendation (string), runbook_id (string), citations (list of source files). "
-        "Base recommendation ONLY on the runbook context, logs, and metrics provided."
-    )
+    match = state.get("runbook_match") or {}
+    grounded = bool(match.get("matched"))
+    if grounded:
+        system = (
+            "Recommend remediation for the ops alert. Return JSON: "
+            "recommendation (string), runbook_id (string), citations (list of source files). "
+            "Base recommendation ONLY on the runbook context, logs, and metrics provided."
+        )
+    else:
+        system = (
+            "There is NO grounded runbook for this alert. Do not invent or reuse a catalog runbook_id. "
+            "Return JSON: recommendation (investigation steps the operator should take), "
+            "runbook_id (must be the string none), citations (empty list), runbook_gap (true)."
+        )
     user = json.dumps(
         {
             "alert": alert,
             "runbook_context": state.get("runbook_context", ""),
+            "runbook_match": match,
             "logs": state.get("logs", []),
             "metrics": state.get("metrics", {}),
         }
     )
     raw = call_llm(system, user)
     try:
-        data = json.loads(raw.strip().strip("`").replace("json", ""))
+        data = json.loads(raw.strip().strip("`").replace("json", "", 1))
     except json.JSONDecodeError:
         chunks = state.get("runbook_chunks") or []
-        rb_id = chunks[0]["runbook_id"] if chunks else "unknown"
+        rb_id = chunks[0]["runbook_id"] if grounded and chunks else "none"
         data = {"recommendation": raw, "runbook_id": rb_id, "citations": []}
 
-    chunks = state.get("runbook_chunks") or []
-    service = alert.get("service", "")
-    hint_rb = SERVICE_TO_RUNBOOK.get(service)
-    if chunks:
-        data["runbook_id"] = chunks[0]["runbook_id"]
-        if not data.get("citations"):
-            data["citations"] = [chunks[0].get("source", f"{chunks[0]['runbook_id']}.md")]
-    elif hint_rb:
-        data["runbook_id"] = hint_rb
+    if grounded:
+        chunks = state.get("runbook_chunks") or []
+        if chunks:
+            data["runbook_id"] = chunks[0]["runbook_id"]
+            if not data.get("citations"):
+                data["citations"] = [chunks[0].get("source", f"{chunks[0]['runbook_id']}.md")]
+        rec = data.get("recommendation", "")
+    else:
+        data["runbook_id"] = "none"
+        rec = data.get("recommendation") or unmatched_recommendation(alert=alert, match=match)
 
-    rec = data.get("recommendation", "")
     metrics = state.get("metrics") or {}
     high_error_rate = float(metrics.get("error_rate_5m") or 0.0) >= 0.05
     requires_hitl = (
         state.get("requires_hitl", False)
         or any(k in rec.lower() for k in DESTRUCTIVE_KEYWORDS)
         or high_error_rate
+        or not grounded
     )
     return {
         "recommendation": rec,
-        "runbook_id": data.get("runbook_id", "unknown"),
+        "runbook_id": data.get("runbook_id", "none" if not grounded else "unknown"),
         "requires_hitl": requires_hitl,
+        "runbook_gap": not grounded,
+        "runbook_match": match,
     }
 
 
 @trace_graph_node("hitl_gate")
 def hitl_gate_node(state: AgentState) -> AgentState:
     """Pass-through; interrupt_before pauses here for human approval."""
+    from observability.trace_context import emit_event
+
+    paused = bool(state.get("requires_hitl") and not state.get("hitl_approved"))
+    emit_event(
+        "🛡️ Event · HITL interrupt" if paused else "🛡️ Event · HITL skip",
+        input={
+            "requires_hitl": bool(state.get("requires_hitl")),
+            "severity": (state.get("alert") or {}).get("severity"),
+        },
+        output={"paused": paused, "approved": bool(state.get("hitl_approved"))},
+        metadata={"phase": "4-guardrails", "node": "hitl_gate"},
+        level="WARNING" if paused else "DEFAULT",
+    )
     return {}
 
 
@@ -154,6 +183,14 @@ def execute_node(state: AgentState) -> AgentState:
         state.get("recommendation", ""),
         state.get("runbook_id", "unknown"),
         approved_by=state.get("hitl_approver"),
+    )
+    from observability.trace_context import emit_event
+
+    emit_event(
+        "🎫 Event · Ticket created",
+        input={"service": alert.get("service"), "runbook_id": state.get("runbook_id")},
+        output={"ticket_id": ticket.get("ticket_id"), "status": ticket.get("status")},
+        metadata={"phase": "5-action", "node": "execute"},
     )
     return {"policy_allowed": True, "policy_reason": reason, "ticket": ticket}
 

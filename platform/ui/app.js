@@ -197,7 +197,7 @@ const SECTIONS = {
   },
   evaluation: {
     title: 'Evaluation',
-    subtitle: 'Langfuse analytics · traces · MLflow eval gate',
+    subtitle: 'This design’s LLM ops tool — traces, experiments, LLM-as-judge',
     breadcrumb: 'Platform › Evaluation',
     tabs: [
       { id: 'eval-analytics', label: 'Agent Analytics' },
@@ -1509,6 +1509,10 @@ function initUserMenu() {
   $('profile-form')?.addEventListener('submit', saveProfileSettings);
   $('password-form')?.addEventListener('submit', savePasswordChange);
   document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && !$('runbook-gap-modal')?.classList.contains('hidden')) {
+      closeRunbookGapModal();
+      return;
+    }
     if (e.key === 'Escape' && !$('profile-modal')?.classList.contains('hidden')) closeProfileModal();
     if (e.key === 'Escape' && userMenuOpen) closeUserMenu();
   });
@@ -2272,19 +2276,19 @@ function applyDesignNativeLinks(d, items) {
   const logs = byRole('logs');
   const dashboards = byRole('dashboards');
   const llmops = byRole('llmops');
-  const evals = byRole('evals');
+  const evals = byRole('evals') || llmops;
   setNativeHref('obs-link-prometheus', metrics?.url);
   setNativeHref('link-prometheus-alert', metrics?.url);
   setNativeHref('obs-link-loki', logs?.url);
   setNativeHref('obs-link-grafana', dashboards?.url);
   setNativeHref('link-grafana-alert', dashboards?.url);
   setNativeHref('link-langfuse-dashboard', llmops?.url);
-  setNativeHref('link-langfuse-scores', llmops?.url);
+  setNativeHref('link-langfuse-scores', evals?.url || llmops?.url);
   setNativeHref('link-trace', llmops?.url);
   setNativeHref('link-trace-eval', llmops?.url);
   setNativeHref('link-eval-langfuse', llmops?.url);
-  setNativeHref('link-mlflow-eval', evals?.url);
-  setNativeHref('link-eval-mlflow', evals?.url);
+  setNativeHref('link-mlflow-eval', evals?.url || llmops?.url);
+  setNativeHref('link-eval-mlflow', evals?.url || llmops?.url);
   if (d?.policyUrl) {
     setNativeHref('link-opa-console', d.policyUrl);
     setNativeHref('grd-link-opa', d.policyUrl);
@@ -2441,6 +2445,7 @@ function applyArchRuntimeLabels(d) {
     lfDash.innerHTML = `${shine ? '<span class="btn-shine"></span>' : ''}Open ${llmops}`;
   }
   if ($('link-langfuse-scores')) $('link-langfuse-scores').textContent = `${llmops} Scores`;
+  if ($('link-mlflow-eval')) $('link-mlflow-eval').textContent = d.evals?.split('·')[0].trim() || llmops;
   const lfTrace = $('link-trace-eval');
   if (lfTrace) lfTrace.textContent = `Open ${llmops}`;
   const hitlTrace = $('obs-hitl-open-trace');
@@ -2495,7 +2500,7 @@ function applyArchDesignContext() {
     SECTIONS.observability.subtitle = `Signals → ${d.vector} RAG → ${d.policy} → HITL`;
   }
   if (SECTIONS.evaluation) {
-    SECTIONS.evaluation.subtitle = d.evals || `${d.llmops} · ${d.traces} · MLflow`;
+    SECTIONS.evaluation.subtitle = d.evals || d.llmops;
   }
   const explorer = $('vector-explorer-title');
   if (explorer) explorer.textContent = d.explorer;
@@ -3141,8 +3146,9 @@ function loadGuardrailsSection(tabId) {
 function resolveApprovalScenario(data, context = {}) {
   const ctxService = context.service || $('service')?.value;
   const active = getActiveScenario();
-  const simulated = active?.payload?.service && ctxService === active.payload.service ? active : null;
   const agentRunbookId = data.runbook_id;
+  const gap = data.runbook_gap === true || data.runbook_match?.matched === false || agentRunbookId === 'none';
+  const simulated = (!gap && active?.payload?.service && ctxService === active.payload.service) ? active : null;
   const scenario = simulated || scenarioByRunbookId(agentRunbookId) || active;
   const mismatch = Boolean(simulated && agentRunbookId && agentRunbookId !== simulated.runbook_id);
   return { scenario, simulated, agentRunbookId, mismatch };
@@ -3156,7 +3162,9 @@ function populateAutomation(data, context = {}) {
   const cr = changeRunId(data.thread_id);
   const { scenario, simulated, agentRunbookId, mismatch } = resolveApprovalScenario(data, context);
   const p = scenario?.payload || context;
-  const displayRunbookId = simulated?.runbook_id || agentRunbookId || scenario?.runbook_id || 'checkout-redis-pool';
+  const displayRunbookId = (agentRunbookId && agentRunbookId !== 'none')
+    ? agentRunbookId
+    : (simulated?.runbook_id || (data.runbook_gap ? 'none' : (scenario?.runbook_id || 'checkout-redis-pool')));
 
   $('cr-id').textContent = `#${cr}`;
   $('cr-meta-id').textContent = cr;
@@ -3368,6 +3376,7 @@ function renderResult(data) {
   updatePipeline(data, activeStep);
   updateQuickStats();
   switchSection('operations', 'ops-pipeline');
+  if (isRunbookGap(data)) maybeAutoOpenRunbookGap(data);
 }
 
 function updateTraceLinks(threadId) {
@@ -3397,9 +3406,7 @@ function renderTraceTree(spans, container) {
     const li = document.createElement('li');
     li.dataset.depth = String(span.depth || 0);
     li.style.animationDelay = `${Math.min(i * 0.04, 0.5)}s`;
-    const badge = span.type && span.type !== 'span'
-      ? `<span class="span-badge ${span.type}">${span.type}</span>`
-      : (span.phase ? `<span class="span-badge">${span.phase}</span>` : '');
+    const badge = `<span class="span-badge ${span.type || 'span'}">${span.type || 'span'}</span>`;
     const agent = span.agent ? `<span class="span-badge agent">${span.agent}</span>` : '';
     li.innerHTML = `
       <span class="span-name">${span.name || 'span'}</span>
@@ -3601,7 +3608,7 @@ function renderLangfuseDashboard(data) {
     const scores = data.scores || [];
     scoresBody.innerHTML = scores.length
       ? scores.map((s) => `<tr><td><code>${s.name}</code></td><td>${s.latest}</td><td>${s.avg}</td><td>${s.count}</td></tr>`).join('')
-      : '<tr><td colspan="4" class="muted">Scores appear after pipeline runs (synced to the LLM ops Scores tab)</td></tr>';
+      : `<tr><td colspan="4" class="muted">${escapeHtml(data.message || 'Scores appear after you run the pipeline or Eval Suite in this design’s LLM ops tool')}</td></tr>`;
   }
 
   const tracesBody = $('lf-recent-traces')?.querySelector('tbody');
@@ -3627,7 +3634,7 @@ function renderLangfuseDashboard(data) {
 
 async function loadLangfuseDashboard() {
   try {
-    const data = await api('/api/observability/langfuse/dashboard');
+    const data = await api(`/api/observability/langfuse/dashboard?design_id=${encodeURIComponent(typeof getArchDesignId === 'function' ? getArchDesignId() : 'd2')}`);
     if (data.message && !data.configured) {
       showToast('warning', archStack('llmops', 'Langfuse'), data.message);
     }
@@ -3638,6 +3645,7 @@ async function loadLangfuseDashboard() {
 }
 
 const EVAL_METRIC_LABELS = {
+  llm_judge_groundedness: 'LLM-as-judge',
   rag_recall_at_3: 'RAG Recall@3',
   groundedness: 'Groundedness',
   tool_call_accuracy: 'Tool / HITL Accuracy',
@@ -3672,6 +3680,16 @@ function renderEvalMetricBars(averages, thresholds) {
 }
 
 function renderEvalDashboard(data) {
+  const hint = $('eval-backend-hint');
+  if (hint) {
+    const g = data.eval_guide || {};
+    hint.textContent = g.tool ? `Open ${g.tool}: ${g.where}. ${g.login || ''}` : '';
+    if (g.url) {
+      const btn = $('link-mlflow-eval');
+      if (btn) btn.href = g.url;
+    }
+  }
+
   const latest = data.latest;
   const banner = $('eval-gate-banner');
   if (banner) {
@@ -3754,7 +3772,8 @@ function renderEvalDashboard(data) {
 
 async function loadEvalDashboard() {
   try {
-    const data = await api('/api/evaluation/dashboard');
+    const did = typeof getArchDesignId === 'function' ? getArchDesignId() : 'd2';
+    const data = await api(`/api/evaluation/dashboard?design_id=${encodeURIComponent(did)}`);
     evalGoldenCases = data.golden_cases || [];
     renderEvalDashboard(data);
   } catch (err) {
@@ -4034,6 +4053,9 @@ let alertPhaseFilter = 'all';
 let alertFlowMaxStepIndex = -1;
 let alertFlowJourneyComplete = false;
 let alertFlowSelectedStepId = null;
+let runbookGapAutoShown = false;
+let runbookGapDraft = null;
+let runbookGapContext = null;
 
 function getAlertSimBody() {
   if (customAlertMode && customAlertPayload) {
@@ -4252,19 +4274,35 @@ function renderAlertStepVisual(step) {
     case 'transform':
       html += `<div class="visual-transform"><span>${escapeHtml(v.from)}</span><span class="visual-arrow">→</span><span>${escapeHtml(v.to)}</span></div>`;
       break;
-    case 'chroma':
+    case 'chroma': {
+      const unmatched = Boolean(v.unmatched);
+      const match = v.match || {};
+      const simPct = Math.round((Number(match.similarity) || 0) * 100);
+      const gatePct = Math.round((Number(match.threshold) || 0.55) * 100);
+      if (unmatched) {
+        html += `<div class="gap-visual-banner">
+          <strong>No grounded runbook</strong>
+          <span class="muted">Nearest neighbor ${escapeHtml(match.nearest?.runbook_id || v.selected_runbook_id || '—')} at ${simPct}% (gate ${gatePct}%) was rejected. The agent will not apply that fix.</span>
+          <button type="button" class="btn-outline" id="obs-open-gap-modal">Open gap assistant</button>
+        </div>`;
+      } else {
+        html += `<p>Selected runbook: <strong>${escapeHtml(v.selected_runbook_id || '—')}</strong></p>`;
+      }
       html += `<p>Collection <code>${escapeHtml(v.collection || 'runbooks')}</code> · query: <em>${escapeHtml(v.query || '')}</em></p>
-        <p>Selected runbook: <strong>${escapeHtml(v.selected_runbook_id || '—')}</strong></p>
-        <ul class="visual-chroma-list">${(v.chunks || []).map((c) =>
-          `<li><code>${escapeHtml(c.runbook_id || '?')}</code><span class="muted">${escapeHtml(c.preview || '')}</span></li>`).join('') || `<li class="muted">Top vector matches from ${archStack('vector', 'Chroma')}</li>`}</ul>`;
+        <ul class="visual-chroma-list">${(v.chunks || []).map((c) => {
+          const pct = c.similarity != null ? `${Math.round(Number(c.similarity) * 100)}%` : '';
+          const rejected = Boolean(c.rejected || (unmatched && c.runbook_id === match.nearest?.runbook_id));
+          return `<li class="${rejected ? 'is-rejected' : ''}"><code>${escapeHtml(c.runbook_id || '?')}</code>${pct ? ` <span class="pill">${pct}</span>` : ''}${rejected ? ' <span class="pill p1">rejected</span>' : ''}<span class="muted">${escapeHtml(c.preview || '')}</span></li>`;
+        }).join('') || `<li class="muted">Top vector matches from ${archStack('vector', 'Chroma')}</li>`}</ul>`;
       break;
+    }
     case 'logs':
       html += (v.lines || []).map((l) =>
         `<div class="log-line ${(l.level || 'info').toLowerCase()}"><span class="log-ts">${(l.timestamp || '').slice(11, 19)}</span>${escapeHtml(l.message || '')}</div>`).join('') || '<p class="muted">No log lines</p>';
       break;
     case 'recommendation':
-      html += `<p>Runbook <code>${escapeHtml(v.runbook_id || '')}</code> ${v.destructive ? '<span class="pill p1">Destructive</span>' : ''}</p>
-        <blockquote class="visual-quote">${escapeHtml(v.text || '')}</blockquote>`;
+      html += `<p>Runbook <code>${escapeHtml(v.runbook_id || '')}</code> ${v.unmatched ? '<span class="pill p1">No grounded runbook</span>' : ''} ${v.destructive ? '<span class="pill p1">Destructive</span>' : ''}</p>
+        <blockquote class="visual-quote${v.unmatched ? ' is-unmatched' : ''}">${escapeHtml(v.text || '')}</blockquote>`;
       break;
     case 'opa':
       html += `<div class="visual-opa ${v.allowed ? 'is-allow' : 'is-deny'}">
@@ -4283,6 +4321,7 @@ function renderAlertStepVisual(step) {
       if (v.badges) html += `<div class="visual-badges">${v.badges.map((b) => `<span class="pill">${escapeHtml(b)}</span>`).join('')}</div>`;
   }
   el.innerHTML = html;
+  $('obs-open-gap-modal')?.addEventListener('click', () => openRunbookGapModal(alertFlowSimData));
 }
 
 function renderAlertSimPayload(step) {
@@ -4438,15 +4477,143 @@ function relabelJourneyForDesign(data) {
   return data;
 }
 
+function isRunbookGap(data) {
+  if (!data) return false;
+  if (data.runbook_gap === true) return true;
+  if (data.runbook_match && data.runbook_match.matched === false) return true;
+  if (data.agent_response?.runbook_gap === true) return true;
+  const chroma = (data.steps || []).find((s) => s.id === 'agent_chroma');
+  return Boolean(chroma?.visual?.unmatched);
+}
+
+function buildRunbookGapContext(data) {
+  const chroma = (data?.steps || []).find((s) => s.id === 'agent_chroma');
+  const rec = (data?.steps || []).find((s) => s.id === 'agent_recommend');
+  const match = data?.runbook_match || chroma?.visual?.match || data?.agent_response?.runbook_match || {};
+  const alert = customAlertPayload || {};
+  return {
+    service: data?.service || alert.service || $('service')?.value || 'unknown-service',
+    severity: data?.severity || alert.severity || $('severity')?.value || 'P2',
+    error_summary: data?.error_summary || alert.error_summary || data?.agent_response?.error_summary || $('obs-custom-summary')?.value || '',
+    log_snippet: alert.log_snippet || $('obs-custom-log')?.value || '',
+    recommendation: data?.hitl?.recommendation || rec?.visual?.text || data?.agent_response?.recommendation || data?.recommendation || '',
+    match,
+  };
+}
+
+function closeRunbookGapModal() {
+  hide($('runbook-gap-modal'));
+}
+
+function openRunbookGapModal(data) {
+  const ctx = buildRunbookGapContext(data || alertFlowSimData || lastPipelineResult);
+  runbookGapContext = ctx;
+  runbookGapDraft = null;
+  const match = ctx.match || {};
+  const pct = Math.round((Number(match.similarity) || 0) * 100);
+  const gate = Math.round((Number(match.threshold) || 0.55) * 100);
+  const nearest = match.nearest?.runbook_id || 'none';
+  if ($('runbook-gap-sub')) {
+    $('runbook-gap-sub').textContent =
+      `Nearest neighbor “${nearest}” scored ${pct}% against “${ctx.service} / ${ctx.error_summary}”. Gate is ${gate}% plus distinctive log overlap — that catalog runbook was not applied.`;
+  }
+  if ($('runbook-gap-pct')) $('runbook-gap-pct').textContent = `${pct}%`;
+  if ($('runbook-gap-gate')) $('runbook-gap-gate').textContent = `${gate}%`;
+  if ($('runbook-gap-nearest-id')) $('runbook-gap-nearest-id').textContent = nearest;
+  const fill = $('runbook-gap-fill');
+  if (fill) {
+    fill.style.width = '0%';
+    requestAnimationFrame(() => { fill.style.width = `${Math.min(100, pct)}%`; });
+  }
+  if ($('runbook-gap-rec')) $('runbook-gap-rec').textContent = ctx.recommendation || '';
+  hide($('runbook-gap-draft'));
+  hide($('runbook-gap-embed'));
+  show($('runbook-gap-draft-btn'));
+  if ($('runbook-gap-status')) $('runbook-gap-status').textContent = '';
+  show($('runbook-gap-modal'));
+}
+
+function maybeAutoOpenRunbookGap(data) {
+  if (runbookGapAutoShown || !isRunbookGap(data)) return;
+  runbookGapAutoShown = true;
+  openRunbookGapModal(data);
+}
+
+async function createGapTicket() {
+  if (!runbookGapContext) return;
+  setButtonLoading($('runbook-gap-ticket'), true);
+  try {
+    const ticket = await api('/api/runbooks/gap/ticket', {
+      method: 'POST',
+      body: JSON.stringify({
+        service: runbookGapContext.service,
+        severity: runbookGapContext.severity,
+        error_summary: runbookGapContext.error_summary,
+        recommendation: runbookGapContext.recommendation,
+      }),
+    });
+    const id = ticket.ticket_id || ticket.id || 'created';
+    if ($('runbook-gap-status')) $('runbook-gap-status').textContent = `Ticket ${id} opened.`;
+    showToast('success', 'Ticket created', id);
+  } catch (err) {
+    if ($('runbook-gap-status')) $('runbook-gap-status').textContent = err.message;
+    showToast('error', 'Ticket failed', err.message);
+  } finally {
+    setButtonLoading($('runbook-gap-ticket'), false);
+  }
+}
+
+async function draftGapRunbook({ persist = false } = {}) {
+  if (!runbookGapContext) return;
+  const btn = persist ? $('runbook-gap-embed') : $('runbook-gap-draft-btn');
+  setButtonLoading(btn, true);
+  try {
+    const drafted = await api('/api/runbooks/draft', {
+      method: 'POST',
+      body: JSON.stringify({
+        service: runbookGapContext.service,
+        severity: runbookGapContext.severity,
+        error_summary: runbookGapContext.error_summary,
+        log_snippet: runbookGapContext.log_snippet,
+        recommendation: runbookGapContext.recommendation,
+        persist,
+      }),
+    });
+    runbookGapDraft = drafted;
+    show($('runbook-gap-draft'));
+    if ($('runbook-gap-draft-title')) $('runbook-gap-draft-title').textContent = drafted.title || 'Draft runbook';
+    if ($('runbook-gap-draft-id')) $('runbook-gap-draft-id').textContent = drafted.runbook_id || '';
+    if ($('runbook-gap-draft-md')) $('runbook-gap-draft-md').textContent = drafted.markdown || '';
+    hide($('runbook-gap-draft-btn'));
+    show($('runbook-gap-embed'));
+    if (persist && drafted.persisted) {
+      if ($('runbook-gap-status')) {
+        $('runbook-gap-status').textContent = `Embedded ${drafted.runbook_id} into the vector index. Re-run the alert to retrieve it.`;
+      }
+      showToast('success', 'Runbook embedded', drafted.runbook_id);
+    } else if (!persist) {
+      if ($('runbook-gap-status')) $('runbook-gap-status').textContent = 'Draft ready. Embed it to add this signature to the vector DB.';
+      showToast('info', 'Draft ready', 'Review the markdown, then embed it.');
+    }
+  } catch (err) {
+    if ($('runbook-gap-status')) $('runbook-gap-status').textContent = err.message;
+    showToast('error', persist ? 'Embed failed' : 'Draft failed', err.message);
+  } finally {
+    setButtonLoading(btn, false);
+  }
+}
+
 function applyAlertSimResult(data, { invokeAgent = false } = {}) {
   relabelJourneyForDesign(data);
   alertFlowSimData = data;
+  runbookGapAutoShown = false;
   populateAlertStepSelect(data.steps);
   renderAlertExternalViews(data.external_views);
   $('obs-hitl-banner')?.classList.add('hidden');
   animateAlertFlowSteps(data.steps, (step) => {
     selectAlertFlowStep(step.id);
   }, () => {
+    maybeAutoOpenRunbookGap(data);
     if (invokeAgent) {
       wireObsHitlFromResponse(data);
       if (data.hitl?.status === 'awaiting_hitl' && data.agent_response && $('alert-flow-caption')) {
@@ -4692,7 +4859,7 @@ async function finishEvalRunAnimation(result) {
     $('eval-theater-title').textContent = passed ? '✓ Eval gate PASSED' : '✗ Eval gate FAILED';
   }
   if ($('eval-theater-sub')) {
-    $('eval-theater-sub').textContent = `${result?.cases_passed ?? '?'}/${result?.case_count ?? cases.length} golden cases · scores synced to ${archStack('llmops', 'Langfuse')} & MLflow`;
+    $('eval-theater-sub').textContent = `${result?.cases_passed ?? '?'}/${result?.case_count ?? cases.length} golden cases · published to ${archStack('llmops', 'Langfuse')}`;
   }
   if ($('eval-theater-caption')) {
     $('eval-theater-caption').textContent = passed
@@ -4726,7 +4893,8 @@ async function runEvalSuite() {
   let cases = evalGoldenCases;
   if (!cases.length) {
     try {
-      const dash = await api('/api/evaluation/dashboard');
+      const did = typeof getArchDesignId === 'function' ? getArchDesignId() : 'd2';
+      const dash = await api(`/api/evaluation/dashboard?design_id=${encodeURIComponent(did)}`);
       cases = dash.golden_cases || [];
       evalGoldenCases = cases;
     } catch (_) { /* use fallback */ }
@@ -4736,12 +4904,20 @@ async function runEvalSuite() {
   startEvalRunAnimation(cases);
 
   try {
-    const result = await api('/api/evaluation/run', { method: 'POST', body: '{}' });
+    const result = await api('/api/evaluation/run', {
+      method: 'POST',
+      body: JSON.stringify({ design_id: typeof getArchDesignId === 'function' ? getArchDesignId() : 'd2' }),
+    });
     await finishEvalRunAnimation(result);
     renderEvalDashboard({ latest: result, history: [], golden_count: result.case_count, golden_cases: cases });
     await loadEvalDashboard();
     loadLangfuseDashboard();
-    showToast(result.passed ? 'success' : 'warning', result.passed ? 'Eval gate passed' : 'Eval gate failed', `${result.cases_passed}/${result.case_count} cases`);
+    const tool = (result.publish && result.publish.backend) || result.eval_backend || archStack('llmops', 'eval tool');
+    showToast(
+      result.passed ? 'success' : 'warning',
+      result.passed ? 'Eval gate passed' : 'Eval gate failed',
+      `${result.cases_passed}/${result.case_count} cases · published to ${tool}`,
+    );
   } catch (err) {
     stopEvalRunAnimation();
     $('eval-run-theater')?.classList.add('hidden');
@@ -4780,11 +4956,7 @@ async function loadLinks() {
       'grd-link-opa': observabilityLinks.opa || 'http://localhost:8181',
       'link-prometheus-alert': observabilityLinks.prometheus || observabilityLinks.mimir || 'http://localhost:8428',
       'link-grafana-alert': observabilityLinks.grafana,
-      'link-mlflow-eval': observabilityLinks.mlflow,
-      'link-eval-langfuse': observabilityLinks.phoenix || observabilityLinks.langfuse,
-      'link-eval-mlflow': observabilityLinks.mlflow,
-      'link-trace': observabilityLinks.phoenix || observabilityLinks.langfuse,
-      'link-trace-eval': observabilityLinks.phoenix || observabilityLinks.langfuse,
+      'link-eval-langfuse': observabilityLinks.langfuse,
       'obs-link-grafana': observabilityLinks.grafana,
       'obs-link-prometheus': observabilityLinks.prometheus || observabilityLinks.mimir,
       'obs-link-loki': observabilityLinks.kibana || observabilityLinks.opensearch_dashboards || observabilityLinks.loki,
@@ -5873,6 +6045,14 @@ $('eval-how-toggle')?.addEventListener('click', () => {
 $('obs-sim-refresh')?.addEventListener('click', () => loadAlertFlowCatalog());
 $('obs-sim-preview')?.addEventListener('click', () => previewAlertFlow(false));
 $('obs-sim-fire')?.addEventListener('click', () => previewAlertFlow(true));
+$('runbook-gap-close')?.addEventListener('click', closeRunbookGapModal);
+$('runbook-gap-dismiss')?.addEventListener('click', closeRunbookGapModal);
+$('runbook-gap-modal')?.addEventListener('click', (e) => {
+  if (e.target.id === 'runbook-gap-modal') closeRunbookGapModal();
+});
+$('runbook-gap-ticket')?.addEventListener('click', () => createGapTicket());
+$('runbook-gap-draft-btn')?.addEventListener('click', () => draftGapRunbook({ persist: false }));
+$('runbook-gap-embed')?.addEventListener('click', () => draftGapRunbook({ persist: true }));
 $('obs-custom-use')?.addEventListener('click', () => useCustomAlertFromForm());
 $('obs-hitl-open-sim')?.addEventListener('click', () => switchSection('simulation', 'auto-change'));
 $('obs-hitl-open-trace')?.addEventListener('click', () => switchSection('evaluation', 'eval-trace'));

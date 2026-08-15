@@ -121,6 +121,8 @@ class AgentResponse(BaseModel):
     mcp_tool_calls: list[dict] | None = None
     route: str | None = None
     runbook_chunks: list[dict] | None = None
+    runbook_gap: bool = False
+    runbook_match: dict | None = None
     final_response: str | None = None
     service: str | None = None
     severity: str | None = None
@@ -137,6 +139,26 @@ class PromotionRequest(BaseModel):
 class PromotionDecideRequest(BaseModel):
     approved: bool
     note: str = ""
+
+
+class RunbookDraftRequest(BaseModel):
+    service: str
+    severity: str = "P2"
+    error_summary: str
+    log_snippet: str = ""
+    recommendation: str = ""
+    persist: bool = False
+
+
+class GapTicketRequest(BaseModel):
+    service: str
+    severity: str = "P2"
+    error_summary: str = ""
+    recommendation: str = ""
+
+
+class EvalRunRequest(BaseModel):
+    design_id: str | None = None
 
 
 class IngestReindexRequest(BaseModel):
@@ -253,6 +275,8 @@ def _serialize(mode: str, thread_id: str, result: dict, graph, config, domain: s
         mcp_tool_calls=values.get("mcp_tool_calls"),
         route=values.get("route"),
         runbook_chunks=values.get("runbook_chunks"),
+        runbook_gap=bool(values.get("runbook_gap")),
+        runbook_match=values.get("runbook_match"),
         final_response=values.get("final_response"),
         service=alert.get("service"),
         severity=alert.get("severity"),
@@ -330,6 +354,8 @@ def _agent_response_from_json(mode: str, domain: str, data: dict) -> AgentRespon
         hitl_approved=data.get("hitl_approved", False),
         ticket=data.get("ticket"),
         runbook_chunks=data.get("runbook_chunks"),
+        runbook_gap=bool(data.get("runbook_gap")),
+        runbook_match=data.get("runbook_match"),
         service=data.get("service"),
         severity=data.get("severity"),
         error_summary=data.get("error_summary"),
@@ -490,6 +516,8 @@ def _serialize_from_checkpoint(mode: str, domain: str, thread_id: str, graph, co
         mcp_tool_calls=result.get("mcp_tool_calls"),
         route=result.get("route"),
         runbook_chunks=result.get("runbook_chunks"),
+        runbook_gap=bool(result.get("runbook_gap")),
+        runbook_match=result.get("runbook_match"),
         final_response=result.get("final_response"),
         service=alert.get("service"),
         severity=alert.get("severity"),
@@ -1115,6 +1143,38 @@ def opa_policy_revisions(limit: int = 20, user: User = Depends(require_roles("op
     return {"revisions": list_policy_revisions(limit=min(limit, 50))}
 
 
+@app.post("/api/runbooks/draft")
+def draft_runbook(body: RunbookDraftRequest, user: User = Depends(require_roles("operator", "admin"))):
+    from shared.runbook_author import draft_runbook_markdown, persist_runbook
+
+    drafted = draft_runbook_markdown(
+        service=body.service,
+        severity=body.severity,
+        error_summary=body.error_summary,
+        log_snippet=body.log_snippet,
+        recommendation=body.recommendation,
+    )
+    published = None
+    if body.persist:
+        try:
+            published = persist_runbook(
+                runbook_id=drafted["runbook_id"],
+                markdown=drafted["markdown"],
+                triggered_by=user.email,
+            )
+        except Exception as exc:
+            raise HTTPException(status_code=502, detail=f"Ingestion publish failed: {exc}") from exc
+    return {**drafted, "persisted": bool(published), "ingest": published}
+
+
+@app.post("/api/runbooks/gap/ticket")
+def gap_ticket(body: GapTicketRequest, user: User = Depends(require_roles("operator", "admin"))):
+    from agent.tools.ticket_create import create_ticket
+
+    rec = body.recommendation or f"Unmatched runbook for {body.service}: {body.error_summary}"
+    return create_ticket(body.service, body.severity, rec, "none", approved_by=user.email)
+
+
 @app.get("/api/tickets")
 def list_tickets(user: User = Depends(require_roles("operator", "admin"))):
     url = f"{shared.config.TICKET_API_URL.rstrip('/')}/tickets"
@@ -1130,7 +1190,7 @@ def list_tickets(user: User = Depends(require_roles("operator", "admin"))):
 @app.get("/api/config/links")
 def observability_links(user: User = Depends(get_current_user)):
     return {
-        "langfuse": os.getenv("PHOENIX_PUBLIC_URL", os.getenv("LANGFUSE_PUBLIC_URL", os.getenv("LANGFUSE_HOST", "http://localhost:6006"))),
+        "langfuse": os.getenv("LANGFUSE_PUBLIC_URL", "http://localhost:3000"),
         "mlflow": os.getenv("MLFLOW_PUBLIC_URL", "http://localhost:5001"),
         "grafana": os.getenv("GRAFANA_PUBLIC_URL", "http://localhost:3001"),
         "prometheus": os.getenv("VM_PUBLIC_URL", os.getenv("PROMETHEUS_PUBLIC_URL", "http://localhost:8428")),
@@ -1183,22 +1243,28 @@ def hitl_history(decision: str | None = None, user: User = Depends(require_roles
 
 
 @app.get("/api/observability/langfuse/dashboard")
-def get_langfuse_dashboard(user: User = Depends(require_roles("operator", "admin", "viewer"))):
-    """Aggregated Langfuse analytics — KPIs, latency charts, scores, recent traces."""
-    return fetch_langfuse_dashboard()
+def get_langfuse_dashboard(
+    design_id: str | None = None,
+    user: User = Depends(require_roles("operator", "admin", "viewer")),
+):
+    """Aggregated analytics — Langfuse for D1, Phoenix/MLflow messages for D2/D3."""
+    return fetch_langfuse_dashboard(design_id=design_id)
 
 
 @app.get("/api/evaluation/dashboard")
-def evaluation_dashboard(user: User = Depends(require_roles("operator", "admin", "viewer"))):
-    """Golden-set eval gate status, history, and thresholds (no CI/CD required)."""
-    return get_eval_dashboard()
+def evaluation_dashboard(
+    design_id: str | None = None,
+    user: User = Depends(require_roles("operator", "admin", "viewer")),
+):
+    """Golden-set eval gate status for the selected design's eval tool."""
+    return get_eval_dashboard(design_id=design_id)
 
 
 @app.post("/api/evaluation/run")
-def evaluation_run(user: User = Depends(require_roles("operator", "admin"))):
-    """Run golden_alerts.json eval suite on demand; scores → Langfuse + MLflow + governance."""
+def evaluation_run(body: EvalRunRequest = EvalRunRequest(), user: User = Depends(require_roles("operator", "admin"))):
+    """Run golden_alerts.json and publish scores to Langfuse (D1), Phoenix (D2), or MLflow (D3)."""
     try:
-        return run_eval_suite(triggered_by=user.email, source="platform")
+        return run_eval_suite(triggered_by=user.email, source="platform", design_id=body.design_id)
     except Exception as exc:
         raise HTTPException(status_code=500, detail=str(exc)) from exc
 

@@ -1,4 +1,4 @@
-/** Design 3 stack pack — OpenSearch k-NN + Mimir + Tempo + Langfuse */
+/** Design 3 stack pack — OpenSearch k-NN + Mimir + Tempo + MLflow */
 window.ARCH_DESIGN_PACKS = window.ARCH_DESIGN_PACKS || {};
 window.ARCH_DESIGN_LOGOS = Object.assign(window.ARCH_DESIGN_LOGOS || {}, {
   opensearch: { label: 'OpenSearch', src: '/static/designs/d3/logos/opensearch.svg?v=1' },
@@ -11,7 +11,7 @@ window.ARCH_DESIGN_PACKS.d3 = {
   n: 3,
   name: 'Design 3',
   tagline: 'OpenSearch unified data plane',
-  stack: 'OpenSearch k-NN + Mimir + Tempo + Langfuse',
+  stack: 'OpenSearch k-NN + Mimir + Tempo + MLflow',
   deploy: './deploy.sh up-d3',
   pick: 'One search plane. Grafana for metrics and traces.',
   vector: 'OpenSearch k-NN',
@@ -19,9 +19,9 @@ window.ARCH_DESIGN_PACKS.d3 = {
   logs: 'OpenSearch + Fluent Bit',
   metrics: 'Prometheus + Mimir',
   dashboards: 'OpenSearch Dashboards + Grafana',
-  llmops: 'Langfuse',
-  evals: 'Langfuse datasets · MLflow gate · Grafana Tempo',
-  traces: 'OTEL → Grafana Tempo',
+  llmops: 'MLflow',
+  evals: 'MLflow tracing · experiments · LLM-as-judge',
+  traces: 'MLflow Tracing',
   policy: 'OPA / Rego',
   safety: 'NeMo Guardrails (optional)',
   ci: 'GitLab CI',
@@ -46,13 +46,13 @@ window.ARCH_DESIGN_PACKS.d3 = {
     ['9201', 'OpenSearch'],
     ['9009', 'Mimir'],
     ['3200', 'Grafana Tempo'],
-    ['3000', 'Langfuse'],
+    ['5001', 'MLflow'],
     ['8181', 'OPA'],
   ],
   phases: {
     ingestion: ['Alertmanager', 'OpenSearch + Fluent Bit', 'Prometheus + Mimir', 'OSD + Grafana', 'OpenSearch k-NN'],
     orchestration: ['LangGraph', 'Gateway UI', 'MCP servers', 'Ollama'],
-    evaluation: ['Langfuse', 'MLflow', 'Grafana Tempo'],
+    evaluation: ['MLflow'],
     guardrails: ['OPA / Rego', 'HITL gate', 'NeMo (optional)'],
     action: ['PostgreSQL', 'Ticket API', 'GitLab CI'],
   },
@@ -62,14 +62,14 @@ window.ARCH_DESIGN_PACKS.d3 = {
     { key: 'opensearch', label: 'OpenSearch API', url: 'http://localhost:9201', role: 'logs-api', hint: 'Raw cluster JSON — use Dashboards', sidebar: false },
     { key: 'mimir', label: 'Mimir in Grafana', url: 'http://localhost:3001/explore?orgId=1&left=%7B%22datasource%22:%22mimir%22,%22queries%22:%5B%7B%22refId%22:%22A%22,%22expr%22:%22service_error_rate%22%7D%5D%7D', role: 'metrics', hint: 'METRICS — Explore → datasource Mimir → service_error_rate', hover: 'METRICS only. Grafana admin/admin → Explore (compass) → datasource Mimir (not VictoriaMetrics). Query service_error_rate. Mimir has no vendor GUI. This is NOT logs.' },
     { key: 'grafana', label: 'Grafana', url: 'http://localhost:3001/d/design3-mimir-tempo?orgId=1', role: 'dashboards', hint: 'admin / admin · folder AgentOps Design 3', hover: 'admin / admin. Dashboards → AgentOps Design 3. Mimir panels = metrics. Tempo panel = traces. Logs are OpenSearch Dashboards, not this page.' },
-    { key: 'langfuse', label: 'Langfuse', url: 'http://localhost:3000', role: 'llmops', hint: 'a@ex.com / 123456789 · pick the Design 3 project', hover: 'LLM TRACES for Design 3. Login a@ex.com / 123456789. Top-left project picker → your Design 3 project (not Design 1 Ops Triage). Open Traces.' },
-    { key: 'tempo', label: 'Tempo in Grafana', url: 'http://localhost:3001/explore?orgId=1&left=%7B%22datasource%22:%22tempo%22,%22queries%22:%5B%7B%22refId%22:%22A%22,%22queryType%22:%22traceqlSearch%22%7D%5D%7D', role: 'traces', hint: 'TRACES — Explore → datasource Tempo (not logs)', hover: 'TRACES only. Grafana Explore → datasource Tempo. Search, filter resource.agentops.design = d3. Tempo has no vendor GUI. Not logs, not metrics.' },
-    { key: 'mlflow', label: 'MLflow', url: 'http://localhost:5001', role: 'evals', hint: 'Eval gate', hover: 'EVAL GATE. Shared MLflow — look for runs tagged d3.' },
+    { key: 'mlflow', label: 'MLflow', url: 'http://localhost:5001', role: 'llmops', hint: 'Traces + experiments — Design 3 LLM ops', hover: 'Design 3 LLM TRACES. MLflow :5001 → Experiments → ops-triage-d3. Open a run to see traces and llm-as-judge spans. Not Langfuse, not Phoenix.' },
+    { key: 'tempo', label: 'Tempo in Grafana', url: 'http://localhost:3001/explore?orgId=1&left=%7B%22datasource%22:%22tempo%22,%22queries%22:%5B%7B%22refId%22:%22A%22,%22queryType%22:%22traceqlSearch%22%7D%5D%7D', role: 'traces', hint: 'Infra traces — Explore → Tempo', hover: 'INFRA TRACES only (OTEL). Grafana Explore → Tempo. LLM eval lives in MLflow, not here. Not logs, not metrics.' },
+    { key: 'mlflow', label: 'MLflow eval', url: 'http://localhost:5001', role: 'evals', hint: 'Evaluate · LLM-as-judge artifacts', hover: 'Design 3 EVAL. After Run Eval Suite: MLflow experiment ops-triage-d3 → run eval-* → metrics + artifacts eval_report.json and llm_judge.md. This is the whole eval story for D3.' },
   ],
   tiles: [
     { id: 'link-grafana', key: 'opensearch', label: 'OpenSearch Dashboards' },
     { id: 'link-prometheus', key: 'mimir', label: 'Mimir' },
-    { id: 'link-langfuse', key: 'langfuse', label: 'Langfuse' },
-    { id: 'link-mlflow', key: 'mlflow', label: 'MLflow' },
+    { id: 'link-langfuse', key: 'mlflow', label: 'MLflow' },
+    { id: 'link-mlflow', key: 'mlflow', label: 'MLflow eval' },
   ],
 };

@@ -76,10 +76,48 @@ def _bedrock_call(system: str, user: str) -> str:
 
 def _mock_response(system: str, user: str, error: str | None = None) -> str:
     sys_lower = system.lower()
+    if "write a new sre runbook" in sys_lower or "runbook in github-flavored" in sys_lower:
+        try:
+            payload = json.loads(user)
+        except json.JSONDecodeError:
+            payload = {}
+        service = payload.get("service") or "unknown-service"
+        summary = payload.get("error_summary") or "unmatched alert"
+        title = f"{service} — {summary}"
+        markdown = (
+            f"# {title}\n\n"
+            f"**Service:** {service}  \n"
+            f"**Severity:** {payload.get('severity') or 'P2'}  \n"
+            f"**Triggers:** {summary}\n\n"
+            "## Diagnosis\n\n1. Capture a precise log line\n2. Check error rate and last deploy\n\n"
+            "## Remediation\n\nInvestigate with HITL approval before production change.\n\n"
+            "## Verification\n\n- Error rate returns below threshold\n\n"
+            "## Escalation\n\nPage the service owner if it recurs within 1 hour.\n"
+        )
+        return json.dumps({"title": title, "markdown": markdown})
+    if "llm-as-judge" in sys_lower or "llm as judge" in sys_lower:
+        return json.dumps(
+            {
+                "score": 0.9,
+                "reason": "Recommendation cites the expected runbook and grounded remediation steps.",
+            }
+        )
     if "classify" in sys_lower:
         requires = "P1" in user or "P0" in user
         return json.dumps({"classification": "infra_cpu", "requires_hitl": requires})
     if "recommend" in sys_lower or "remediation" in sys_lower:
+        if "no grounded runbook" in sys_lower or "runbook_gap" in sys_lower:
+            return json.dumps(
+                {
+                    "recommendation": (
+                        "No matching runbook. Capture a precise log signature, check error rate and last deploy, "
+                        "open a ticket, then draft a new runbook and embed it."
+                    ),
+                    "runbook_id": "none",
+                    "citations": [],
+                    "runbook_gap": True,
+                }
+            )
         service = ""
         try:
             payload = json.loads(user)

@@ -389,18 +389,118 @@ services:
       - ./config/otel/otel-collector-config.yaml:/etc/otel-collector-config.yaml:ro
     ports: ["4318:4318"]
 
-  langfuse:
-    image: langfuse/langfuse:2.95.11
+  # Langfuse v3 — same product surface as github.com/langfuse/langfuse
+  # (Tracing, Playground, Prompts, Datasets, Evaluation / LLM-as-judge).
+  # v2 was a single Postgres container; v3 needs ClickHouse + Redis + MinIO + worker.
+  langfuse-postgres-init:
+    image: postgres:16-alpine
     profiles: ["design-1", "design-3"]
-    ports: ["3000:3000"]
     environment:
-      DATABASE_URL: postgresql://agentops:${POSTGRES_PASSWORD:-agentops}@postgres:5432/langfuse
+      PGPASSWORD: ${POSTGRES_PASSWORD:-agentops}
+    entrypoint:
+      - /bin/sh
+      - -c
+      - |
+        until pg_isready -h postgres -U agentops; do sleep 1; done
+        psql -h postgres -U agentops -d postgres -c "CREATE DATABASE langfuse_v3;" || true
+    depends_on:
+      postgres: { condition: service_healthy }
+    restart: "no"
+
+  langfuse-minio-init:
+    image: minio/mc:latest
+    profiles: ["design-1", "design-3"]
+    entrypoint:
+      - /bin/sh
+      - -c
+      - |
+        sleep 2
+        mc alias set local http://minio:9000 agentops agentopsminio
+        mc mb -p local/langfuse || true
+    depends_on:
+      minio: { condition: service_started }
+    restart: "no"
+
+  langfuse-clickhouse:
+    image: clickhouse/clickhouse-server:24.8
+    profiles: ["design-1", "design-3"]
+    environment:
+      CLICKHOUSE_DB: default
+      CLICKHOUSE_USER: clickhouse
+      CLICKHOUSE_PASSWORD: clickhouse
+    mem_limit: 512m
+    volumes:
+      - langfuse_clickhouse_data:/var/lib/clickhouse
+      - langfuse_clickhouse_logs:/var/log/clickhouse-server
+      - ./config/clickhouse/low-memory.xml:/etc/clickhouse-server/config.d/low-memory.xml:ro
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:8123/ping || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 10s
+
+  langfuse-redis:
+    image: redis:7-alpine
+    profiles: ["design-1", "design-3"]
+    command: ["redis-server", "--requirepass", "langfuseredis", "--maxmemory-policy", "noeviction"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "langfuseredis", "ping"]
+      interval: 3s
+      timeout: 5s
+      retries: 10
+
+  langfuse-worker:
+    image: langfuse/langfuse-worker:3
+    profiles: ["design-1", "design-3"]
+    environment: &langfuse-v3-env
+      DATABASE_URL: postgresql://agentops:${POSTGRES_PASSWORD:-agentops}@postgres:5432/langfuse_v3
       NEXTAUTH_URL: http://localhost:3000
       NEXTAUTH_SECRET: ${LANGFUSE_NEXTAUTH_SECRET:-design1-nextauth-secret-min-32-chars}
       SALT: ${LANGFUSE_SALT:-design1-salt-minimum-32-characters}
       ENCRYPTION_KEY: ${LANGFUSE_ENCRYPTION_KEY:-0000000000000000000000000000000000000000000000000000000000000000}
       TELEMETRY_ENABLED: "false"
       LANGFUSE_ENABLE_EXPERIMENTAL_FEATURES: "true"
+      CLICKHOUSE_MIGRATION_URL: clickhouse://langfuse-clickhouse:9000
+      CLICKHOUSE_URL: http://langfuse-clickhouse:8123
+      CLICKHOUSE_USER: clickhouse
+      CLICKHOUSE_PASSWORD: clickhouse
+      CLICKHOUSE_CLUSTER_ENABLED: "false"
+      REDIS_HOST: langfuse-redis
+      REDIS_PORT: "6379"
+      REDIS_AUTH: langfuseredis
+      REDIS_TLS_ENABLED: "false"
+      LANGFUSE_S3_EVENT_UPLOAD_BUCKET: langfuse
+      LANGFUSE_S3_EVENT_UPLOAD_REGION: auto
+      LANGFUSE_S3_EVENT_UPLOAD_ACCESS_KEY_ID: agentops
+      LANGFUSE_S3_EVENT_UPLOAD_SECRET_ACCESS_KEY: agentopsminio
+      LANGFUSE_S3_EVENT_UPLOAD_ENDPOINT: http://minio:9000
+      LANGFUSE_S3_EVENT_UPLOAD_FORCE_PATH_STYLE: "true"
+      LANGFUSE_S3_EVENT_UPLOAD_PREFIX: events/
+      LANGFUSE_S3_MEDIA_UPLOAD_BUCKET: langfuse
+      LANGFUSE_S3_MEDIA_UPLOAD_REGION: auto
+      LANGFUSE_S3_MEDIA_UPLOAD_ACCESS_KEY_ID: agentops
+      LANGFUSE_S3_MEDIA_UPLOAD_SECRET_ACCESS_KEY: agentopsminio
+      LANGFUSE_S3_MEDIA_UPLOAD_ENDPOINT: http://minio:9000
+      LANGFUSE_S3_MEDIA_UPLOAD_FORCE_PATH_STYLE: "true"
+      LANGFUSE_S3_MEDIA_UPLOAD_PREFIX: media/
+      LANGFUSE_LLM_CONNECTION_WHITELISTED_HOST: ollama
+      NODE_OPTIONS: --max-old-space-size=384
+    mem_limit: 512m
+    depends_on:
+      postgres: { condition: service_healthy }
+      langfuse-postgres-init: { condition: service_completed_successfully }
+      langfuse-clickhouse: { condition: service_healthy }
+      langfuse-redis: { condition: service_healthy }
+      langfuse-minio-init: { condition: service_completed_successfully }
+
+  langfuse:
+    image: langfuse/langfuse:3
+    profiles: ["design-1", "design-3"]
+    ports: ["3000:3000"]
+    environment:
+      <<: *langfuse-v3-env
+      LANGFUSE_S3_MEDIA_UPLOAD_ENDPOINT: http://localhost:9000
       LANGFUSE_INIT_ORG_ID: ${LANGFUSE_INIT_ORG_ID:-agentops}
       LANGFUSE_INIT_ORG_NAME: ${LANGFUSE_INIT_ORG_NAME:-AgentOps}
       LANGFUSE_INIT_PROJECT_ID: ${LANGFUSE_INIT_PROJECT_ID:-design1-ops-triage}
@@ -410,8 +510,15 @@ services:
       LANGFUSE_INIT_USER_EMAIL: ${LANGFUSE_INIT_USER_EMAIL:-a@ex.com}
       LANGFUSE_INIT_USER_NAME: ${LANGFUSE_INIT_USER_NAME:-AgentOps Demo}
       LANGFUSE_INIT_USER_PASSWORD: ${LANGFUSE_INIT_USER_PASSWORD:-123456789}
+      NODE_OPTIONS: --max-old-space-size=768
+    mem_limit: 1100m
     depends_on:
       postgres: { condition: service_healthy }
+      langfuse-postgres-init: { condition: service_completed_successfully }
+      langfuse-clickhouse: { condition: service_healthy }
+      langfuse-redis: { condition: service_healthy }
+      langfuse-worker: { condition: service_started }
+      langfuse-minio-init: { condition: service_completed_successfully }
 
   # ── Phase 4 — Guardrails ─────────────────────────────────────────────
   opa:
@@ -689,6 +796,8 @@ volumes:
   vm_data:
   minio_data:
   phoenix_data:
+  langfuse_clickhouse_data:
+  langfuse_clickhouse_logs:
   opensearch_data:
   mimir_data:
   tempo_data:

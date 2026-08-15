@@ -1,0 +1,7 @@
+<!-- Cap ClickHouse so Langfuse v3 fits an 8GB Docker VM next to ES / Phoenix. -->
+<clickhouse>
+  <max_server_memory_usage>402653184</max_server_memory_usage>
+  <max_concurrent_queries>8</max_concurrent_queries>
+  <mark_cache_size>33554432</mark_cache_size>
+  <uncompressed_cache_size>0</uncompressed_cache_size>
+</clickhouse>

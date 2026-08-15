@@ -82,6 +82,61 @@ def _parent() -> Any:
     return _trace.get()
 
 
+def _start_observation(
+    name: str,
+    *,
+    kind: str = "span",
+    input: Any = None,
+    metadata: dict[str, Any] | None = None,
+    output: Any = None,
+    level: str | None = None,
+) -> Any:
+    """Create a Langfuse 2.x SPAN, GENERATION, or EVENT under the current parent."""
+    parent = _parent()
+    if not parent:
+        return None
+    meta = dict(metadata or {})
+    payload_in = _safe_payload(input)
+    kind = (kind or "span").lower()
+    try:
+        if kind == "generation" and hasattr(parent, "generation"):
+            return parent.generation(
+                name=name,
+                input=payload_in,
+                metadata=meta,
+                model=meta.get("model") or os.getenv("LLM_MODEL", "llama3.2"),
+            )
+        if kind == "event" and hasattr(parent, "event"):
+            kwargs: dict[str, Any] = {
+                "name": name,
+                "input": payload_in,
+                "metadata": {"type": meta.get("type") or "event", **meta},
+            }
+            if output is not None:
+                kwargs["output"] = _safe_payload(output)
+            if level:
+                kwargs["level"] = level
+            return parent.event(**kwargs)
+        return parent.span(name=name, input=payload_in, metadata=meta)
+    except Exception:
+        try:
+            return parent.span(name=name, input=payload_in, metadata=meta)
+        except Exception:
+            return None
+
+
+def emit_event(
+    name: str,
+    *,
+    input: Any = None,
+    output: Any = None,
+    metadata: dict[str, Any] | None = None,
+    level: str = "DEFAULT",
+) -> None:
+    """Point-in-time Langfuse EVENT (HITL, ticket, RAG verdict, policy)."""
+    _start_observation(name, kind="event", input=input, output=output, metadata=metadata, level=level)
+
+
 def _safe_payload(value: Any, limit: int = 3000) -> Any:
     try:
         import json
@@ -103,25 +158,25 @@ def trace_span(
     metadata: dict[str, Any] | None = None,
     kind: str = "span",
 ):
-    parent = _parent()
-    if not parent:
+    obs = _start_observation(name, kind=kind, input=input, metadata=metadata)
+    if not obs:
         yield None
         return
 
-    meta = metadata or {}
-    if kind == "generation":
-        obs = parent.generation(name=name, input=_safe_payload(input), metadata=meta)
-    else:
-        obs = parent.span(name=name, input=_safe_payload(input), metadata=meta)
-
-    push_span(obs)
+    if kind != "event":
+        push_span(obs)
     try:
         yield obs
     except Exception as exc:
-        obs.end(level="ERROR", status_message=str(exc))
+        if hasattr(obs, "end"):
+            try:
+                obs.end(level="ERROR", status_message=str(exc))
+            except Exception:
+                pass
         raise
     finally:
-        pop_span()
+        if kind != "event":
+            pop_span()
 
 
 def trace_llm_generation(name: str, system: str, user: str, fn: Callable[[], str]) -> str:
@@ -147,11 +202,19 @@ def trace_llm_generation(name: str, system: str, user: str, fn: Callable[[], str
         metadata={"model": model, "provider": provider, "mock": use_mock, "type": "llm"},
     ) as obs:
         result = fn()
-        if obs:
-            obs.end(
-                output={"content": result[:4000]},
-                metadata={"model": model, "provider": provider},
-            )
+        if obs and hasattr(obs, "end"):
+            try:
+                obs.end(
+                    output={"content": result[:4000]},
+                    metadata={"model": model, "provider": provider, "type": "llm"},
+                    usage={
+                        "input": max(1, len(system) // 4),
+                        "output": max(1, len(result) // 4),
+                        "unit": "TOKENS",
+                    },
+                )
+            except TypeError:
+                obs.end(output={"content": result[:4000]})
         return result
 
 
@@ -165,6 +228,8 @@ def trace_tool(name: str, *, input: Any = None, metadata: dict[str, Any] | None 
 
 def infer_llm_trace_name(system: str) -> str:
     sys_lower = system.lower()
+    if "llm-as-judge" in sys_lower or "llm as judge" in sys_lower:
+        return "LLM · LLM-as-judge"
     if "supervisor" in sys_lower:
         return "LLM · Supervisor Routing"
     if "classify" in sys_lower:
@@ -197,6 +262,7 @@ def trace_graph_node(node_id: str, *, multi: bool = False) -> Callable[[F], F]:
                 "phase": meta.get("phase"),
                 "agent": meta.get("agent"),
                 "agent_type": meta.get("agent"),
+                "type": "agent",
             }
             with trace_span(display, input=node_input, metadata=node_meta) as obs:
                 result = fn(state, *args, **kwargs)

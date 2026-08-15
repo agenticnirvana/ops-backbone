@@ -13,9 +13,10 @@ import httpx
 from observability.trace_context import MULTI_NODES, STANDALONE_NODES
 
 
-def _auth_header() -> dict[str, str]:
-    pk = os.getenv("LANGFUSE_PUBLIC_KEY", "")
-    sk = os.getenv("LANGFUSE_SECRET_KEY", "")
+def _auth_header(design_id: str | None = None) -> dict[str, str]:
+    from observability.design_keys import langfuse_keys
+
+    pk, sk = langfuse_keys(design_id)
     token = base64.b64encode(f"{pk}:{sk}".encode()).decode()
     return {"Authorization": f"Basic {token}"}
 
@@ -48,16 +49,33 @@ def _format_duration(ms: int | None) -> str:
 
 def _obs_type(obs: dict[str, Any]) -> str:
     kind = (obs.get("type") or obs.get("observationType") or "SPAN").upper()
-    if kind in ("GENERATION", "EVENT"):
-        return kind.lower()
+    if kind == "GENERATION":
+        return "generation"
+    if kind == "EVENT":
+        meta_event = obs.get("metadata") if isinstance(obs.get("metadata"), dict) else {}
+        if (meta_event.get("type") or "") == "tool" or str(obs.get("name") or "").startswith("🔧"):
+            return "tool"
+        return "event"
     meta = obs.get("metadata") or {}
     if isinstance(meta, str):
-        return "span"
+        meta = {}
     if meta.get("type") == "llm":
         return "generation"
     if meta.get("type") == "tool":
         return "tool"
-    if meta.get("type") == "orchestrator" or meta.get("agent_type"):
+    if meta.get("type") == "event":
+        return "event"
+    if meta.get("type") in ("orchestrator", "agent") or meta.get("agent_type"):
+        return "agent"
+    name = str(obs.get("name") or "")
+    lower = name.lower()
+    if name.startswith("💬") or "llm ·" in lower or "llm-as-judge" in lower or "embedding ·" in lower:
+        return "generation"
+    if name.startswith("🔧") or "tool ·" in lower:
+        return "tool"
+    if name.startswith("🛡️") or name.startswith("🎫") or name.startswith("⚖️") or name.startswith("📚 Event") or "event ·" in lower:
+        return "event"
+    if name.startswith(("🎯", "📚", "📋", "📈", "💡", "⚡", "🧭", "🔍", "🤖", "📊")):
         return "agent"
     return "span"
 
@@ -147,8 +165,8 @@ def _public_url() -> str:
     return os.getenv("LANGFUSE_PUBLIC_URL", _host())
 
 
-def _langfuse_client() -> httpx.Client:
-    return httpx.Client(timeout=25.0, headers=_auth_header())
+def _langfuse_client(design_id: str | None = None) -> httpx.Client:
+    return httpx.Client(timeout=25.0, headers=_auth_header(design_id))
 
 
 def _fetch_traces(client: httpx.Client, *, limit: int = 50) -> list[dict[str, Any]]:
@@ -227,23 +245,41 @@ def _avg(values: list[int]) -> int:
     return int(mean(values)) if values else 0
 
 
-def fetch_langfuse_dashboard(*, trace_limit: int = 30) -> dict[str, Any]:
-    """Aggregate Langfuse analytics for dashboard charts and KPIs."""
-    phoenix = os.getenv("PHOENIX_PUBLIC_URL") or os.getenv("PHOENIX_URL")
-    if phoenix:
+def fetch_langfuse_dashboard(*, trace_limit: int = 30, design_id: str | None = None) -> dict[str, Any]:
+    """Aggregate analytics for the Evaluation tab — Langfuse only for Design 1."""
+    from observability.design_keys import langfuse_keys, normalize_design_id
+
+    did = normalize_design_id(design_id)
+    if did == "d2":
+        phoenix = os.getenv("PHOENIX_PUBLIC_URL") or "http://localhost:6006"
         return {
             "configured": True,
             "backend": "phoenix",
-            "message": "Arize Phoenix is the Design 2 LLM ops UI",
+            "design_id": did,
+            "message": "Design 2 uses Phoenix for traces, experiments, and LLM-as-judge. Open Phoenix — not Langfuse.",
             "phoenix_url": phoenix,
             "kpis": {},
             "recent_traces": [],
+            "scores": [],
         }
-    if not os.getenv("LANGFUSE_PUBLIC_KEY") or not os.getenv("LANGFUSE_SECRET_KEY"):
-        return {"configured": False, "message": "Langfuse not configured", "kpis": {}}
+    if did == "d3":
+        mlflow = os.getenv("MLFLOW_PUBLIC_URL") or "http://localhost:5001"
+        return {
+            "configured": True,
+            "backend": "mlflow",
+            "design_id": did,
+            "message": "Design 3 uses MLflow end-to-end for traces, experiments, and LLM-as-judge. Open MLflow — not Langfuse.",
+            "mlflow_url": mlflow,
+            "kpis": {},
+            "recent_traces": [],
+            "scores": [],
+        }
+    pk, sk = langfuse_keys(did)
+    if not pk or not sk:
+        return {"configured": False, "message": "Langfuse not configured for Design 1", "kpis": {}, "design_id": did}
 
     try:
-        with _langfuse_client() as client:
+        with _langfuse_client(did) as client:
             traces = _fetch_traces(client, limit=trace_limit)
             daily = _fetch_daily_metrics(client, 14)
             scores = _fetch_scores(client, 100)

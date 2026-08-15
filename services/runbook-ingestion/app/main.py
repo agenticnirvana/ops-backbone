@@ -11,7 +11,10 @@ from fastapi import Depends, FastAPI, Header, HTTPException
 from pydantic import BaseModel
 from sqlalchemy import select
 
-from app.config import INGESTION_API_TOKEN
+from pathlib import Path
+import re
+
+from app.config import INGESTION_API_TOKEN, RUNBOOKS_DIR
 from app.index_browser import (
     drive_status,
     get_chunk_by_id,
@@ -99,6 +102,13 @@ class IndexBrowseResponse(BaseModel):
     severities: list[str] = []
     runbooks: list[IndexRunbookResponse]
     error: str | None = None
+
+
+class PublishRunbookRequest(BaseModel):
+    runbook_id: str
+    markdown: str
+    triggered_by: str = "api"
+    reindex: bool = True
 
 
 class IndexQueryRequest(BaseModel):
@@ -198,6 +208,32 @@ def ingest_index_chunk(chunk_id: str, collection: str | None = None, _: str = De
     if result.get("error"):
         raise HTTPException(status_code=502, detail=result["error"])
     return result
+
+
+@app.post("/v1/ingest/runbooks")
+def publish_runbook(body: PublishRunbookRequest, _: str = Depends(verify_token)) -> dict:
+    slug = re.sub(r"[^a-z0-9-]+", "-", (body.runbook_id or "").lower()).strip("-")
+    if not slug:
+        raise HTTPException(status_code=400, detail="runbook_id required")
+    if not (body.markdown or "").strip():
+        raise HTTPException(status_code=400, detail="markdown required")
+    RUNBOOKS_DIR.mkdir(parents=True, exist_ok=True)
+    path = Path(RUNBOOKS_DIR) / f"{slug}.md"
+    path.write_text(body.markdown, encoding="utf-8")
+    job = None
+    if body.reindex:
+        job = run_pipeline(
+            job_type="incremental_reindex",
+            triggered_by=body.triggered_by or "api:runbook",
+            mode="incremental",
+            sync_drive=False,
+        )
+    return {
+        "runbook_id": slug,
+        "path": str(path),
+        "bytes": path.stat().st_size,
+        "job": _job_to_response(job) if job else None,
+    }
 
 
 @app.post("/v1/ingest/index/query")

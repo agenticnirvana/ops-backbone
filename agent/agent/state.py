@@ -23,6 +23,8 @@ class AgentState(TypedDict, total=False):
     runbook_context: str
     recommendation: str
     runbook_id: str
+    runbook_match: dict
+    runbook_gap: bool
     requires_hitl: bool
     hitl_approved: bool
     hitl_approver: str

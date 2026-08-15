@@ -1,4 +1,5 @@
 CREATE DATABASE langfuse;
+CREATE DATABASE langfuse_v3;
 
 CREATE TABLE IF NOT EXISTS ingestion_jobs (
     id UUID PRIMARY KEY,

@@ -71,8 +71,9 @@ After login: **Connections → Data sources** — you should see **Prometheus** 
 If datasources are missing: `docker compose -p agentops-design-1 -f deploy/docker-compose.yml restart grafana`
 
 **Langfuse login (http://localhost:3000):** `a@ex.com` / `123456789`  
-**Langfuse version:** self-hosted **2.x** (`langfuse/langfuse:2.95.11` in docker-compose — check footer or `/api/public/health` → `"version":"2.95.11"`).  
-This is **not** Langfuse 3.x. Do not confuse with **Platform UI v3.4** (the course console at `:8080`).
+**Langfuse version:** self-hosted **v3** (`langfuse/langfuse:3` + worker + ClickHouse + Redis — same product as [github.com/langfuse/langfuse](https://github.com/langfuse/langfuse): Tracing, Playground, Prompts, Datasets, Evaluation / LLM-as-judge).  
+Playground and LLM-as-judge need **Settings → LLM Connections** pointing at local Ollama (`http://ollama:11434/v1`, model `llama3.2`).  
+This is **not** Langfuse 2.x. Do not confuse with **Platform UI** at `:8080`.
 
 ### UI mockup map (platform vs external)
 

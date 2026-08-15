@@ -6,7 +6,7 @@ import json
 
 from agent.llm import call_llm
 from agent.tools.log_query import query_logs
-from agent.tools.runbook_rag import format_runbook_context, retrieve_runbooks
+from agent.tools.runbook_rag import retrieve_with_gate
 from agent.tools.ticket_create import create_ticket
 from observability.trace_context import trace_graph_node
 
@@ -35,11 +35,14 @@ def runbook_worker(state: dict) -> dict:
     alert = state.get("alert", {})
     service = alert.get("service", "")
     query = f"{service} {alert.get('error_summary', '')} {alert.get('log_snippet', '')}"
-    chunks = retrieve_runbooks(query, service=service, top_k=3)
+    gated = retrieve_with_gate(query, service=service, top_k=3)
     trace = state.get("worker_trace", []) + ["runbook_worker"]
     return {
-        "runbook_chunks": chunks,
-        "runbook_context": format_runbook_context(chunks),
+        "runbook_chunks": gated["chunks"],
+        "runbook_context": gated["context"],
+        "runbook_match": gated["match"],
+        "runbook_gap": gated["gap"],
+        "runbook_id": gated["runbook_id"],
         "worker_trace": trace,
     }
 
@@ -74,10 +77,19 @@ def observability_worker(state: dict) -> dict:
 @trace_graph_node("remediation_worker", multi=True)
 def remediation_worker(state: dict) -> dict:
     alert = state.get("alert", {})
-    system = (
-        "Recommend remediation. Return JSON: recommendation, runbook_id, citations."
-        " Base on runbook_context and logs only."
-    )
+    match = state.get("runbook_match") or {}
+    grounded = bool(match.get("matched"))
+    if grounded:
+        system = (
+            "Recommend remediation. Return JSON: recommendation, runbook_id, citations."
+            " Base on runbook_context and logs only."
+        )
+    else:
+        system = (
+            "There is NO grounded runbook for this alert. Do not invent or reuse a catalog runbook_id. "
+            "Return JSON: recommendation (investigation steps), runbook_id (must be the string none), "
+            "citations (empty list), runbook_gap (true)."
+        )
     user = json.dumps(
         {
             "alert": alert,
@@ -91,14 +103,21 @@ def remediation_worker(state: dict) -> dict:
         data = json.loads(raw.strip().strip("`").replace("json", ""))
     except json.JSONDecodeError:
         chunks = state.get("runbook_chunks") or []
-        data = {"recommendation": raw, "runbook_id": chunks[0]["runbook_id"] if chunks else "unknown", "citations": []}
+        data = {"recommendation": raw, "runbook_id": "none" if not grounded else (chunks[0]["runbook_id"] if chunks else "unknown"), "citations": []}
     rec = data.get("recommendation", "")
-    requires_hitl = state.get("requires_hitl", False) or any(k in rec.lower() for k in DESTRUCTIVE_KEYWORDS)
+    if not grounded:
+        from agent.tools.runbook_rag import unmatched_recommendation
+
+        data["runbook_id"] = "none"
+        rec = rec or unmatched_recommendation(alert=alert, match=match)
+    requires_hitl = state.get("requires_hitl", False) or any(k in rec.lower() for k in DESTRUCTIVE_KEYWORDS) or not grounded
     trace = state.get("worker_trace", []) + ["remediation_worker"]
     return {
         "recommendation": rec,
-        "runbook_id": data.get("runbook_id", "unknown"),
+        "runbook_id": data.get("runbook_id", "unknown") if grounded else "none",
         "requires_hitl": requires_hitl,
+        "runbook_gap": not grounded,
+        "runbook_match": match,
         "worker_trace": trace,
     }
 

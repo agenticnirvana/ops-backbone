@@ -7,7 +7,7 @@
   <title>Production AgentOps Platform</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@500;700&family=Fraunces:opsz,wght@9..144,500;700&family=Literata:opsz,wght@7..72,400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/static/styles.css?v=design1-6.20-governance">
+  <link rel="stylesheet" href="/static/styles.css?v=design1-6.25-langfuse-v3">
   <script>
     (function () {
       var t = localStorage.getItem('agentops-theme');
@@ -1349,7 +1349,7 @@
               <div class="card-header">
                 <div>
                   <h3>Agent Trace</h3>
-                  <p class="muted" id="eval-trace-subtitle">Orchestrator → pipeline nodes → LLM calls → tools · session = thread_id</p>
+                  <p class="muted" id="eval-trace-subtitle">SPAN (nodes) · GENERATION (LLM) · EVENT (HITL / RAG / policy / ticket) · tools as nested spans</p>
                 </div>
                 <div class="trace-header-actions">
                   <button type="button" class="btn-outline" id="eval-trace-refresh">Refresh</button>
@@ -1364,9 +1364,10 @@
                 <li class="trace-empty"><span class="span-name muted">Run the pipeline to load a live trace</span></li>
               </ul>
               <p class="muted trace-legend">
-                <span class="legend-item"><span class="type-dot agent"></span> Orchestrator / sub-agent</span>
-                <span class="legend-item"><span class="type-dot generation"></span> LLM call</span>
+                <span class="legend-item"><span class="type-dot agent"></span> Agent / node (span)</span>
+                <span class="legend-item"><span class="type-dot generation"></span> LLM generation</span>
                 <span class="legend-item"><span class="type-dot tool"></span> Tool / integration</span>
+                <span class="legend-item"><span class="type-dot event"></span> Event (HITL, RAG, policy, ticket)</span>
               </p>
             </div>
           </div>
@@ -1393,21 +1394,23 @@
                     </ul>
                   </li>
                   <li><strong>Gate verdict</strong> — PASS if all averages meet thresholds (RAG ≥85%, groundedness ≥80%, correctness ≥85%, latency ≤8s)</li>
-                  <li data-arch-copy="<strong>Publish scores</strong> — results saved to PostgreSQL, pushed to {llmops} scores + MLflow metrics"><strong>Publish scores</strong> — results saved to PostgreSQL, pushed to Langfuse scores + MLflow metrics</li>
+                  <li data-arch-copy="<strong>LLM-as-judge</strong> — a judge prompt scores groundedness; that score is published into {llmops}"><strong>LLM-as-judge</strong> — a judge prompt scores groundedness; that score is published into Langfuse</li>
+                  <li data-arch-copy="<strong>Publish</strong> — results saved locally, then pushed only to this design’s eval tool ({evals})"><strong>Publish</strong> — results saved locally, then pushed only to this design’s eval tool (Langfuse datasets / Phoenix / MLflow)</li>
                 </ol>
-                <p class="muted eval-how-practice" data-arch-copy="<strong>Practice:</strong> Run Eval Suite below → inspect per-case table → open MLflow experiment <code>ops-triage-eval-gate</code> → compare with {llmops} trace session <code>eval-&lt;run-id&gt;</code>"><strong>Practice:</strong> Run Eval Suite below → inspect per-case table → open MLflow experiment <code>ops-triage-eval-gate</code> → compare with Langfuse trace session <code>eval-&lt;run-id&gt;</code></p>
+                <p class="muted eval-how-practice" data-arch-copy="<strong>Practice:</strong> Switch design → Run Eval Suite → open {llmops} and look for datasets/experiments plus llm-as-judge scores. Design 1 = Langfuse, Design 2 = Phoenix, Design 3 = MLflow."><strong>Practice:</strong> Switch design → Run Eval Suite → open Langfuse / Phoenix / MLflow for that design only.</p>
               </div>
             </div>
             <div class="lf-dash-head">
               <div>
                 <h3>Eval &amp; Scores</h3>
-                <p class="muted" data-arch-copy="Golden-set regression · on-demand eval gate · scores synced to {llmops} &amp; MLflow">Golden-set regression · on-demand eval gate · scores synced to Langfuse &amp; MLflow</p>
+                <p class="muted" data-arch-copy="Golden-set regression · LLM-as-judge · published to {llmops} only">Golden-set regression · LLM-as-judge · published to Langfuse only for Design 1</p>
+                <p class="muted" id="eval-backend-hint"></p>
                 <p class="muted eval-ci-note">Runs here on demand and as the required GitHub check <code>eval-gate / golden-set</code>. Org/repo stay <code>YOUR_GITHUB_ORG</code> / <code>YOUR_GITHUB_REPO</code> until wired — see <strong>Governance</strong>.</p>
               </div>
               <div class="trace-header-actions">
                 <button type="button" class="btn-outline" id="eval-gate-refresh">Refresh</button>
                 <button type="button" class="btn-primary btn-glossy" id="eval-gate-run"><span class="btn-shine"></span>Run Eval Suite</button>
-                <a class="btn-outline" id="link-mlflow-eval" target="_blank" rel="noopener">MLflow</a>
+                <a class="btn-outline" id="link-mlflow-eval" target="_blank" rel="noopener">Open eval tool</a>
               </div>
             </div>
             <div class="eval-gate-banner hidden" id="eval-gate-banner"></div>
@@ -1849,6 +1852,60 @@
 
 <div id="toast-stack" class="toast-stack" aria-live="polite"></div>
 
+<div id="runbook-gap-modal" class="modal-overlay gap-modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="runbook-gap-title">
+  <div class="modal-card glossy-card gap-modal">
+    <div class="gap-radar" aria-hidden="true">
+      <span class="gap-ring gap-ring-1"></span>
+      <span class="gap-ring gap-ring-2"></span>
+      <span class="gap-ring gap-ring-3"></span>
+      <span class="gap-orbit"><span class="gap-sat"></span></span>
+      <span class="gap-core">?</span>
+    </div>
+    <div class="modal-head">
+      <div>
+        <p class="gap-kicker">Runbook confidence gate</p>
+        <h2 id="runbook-gap-title">No grounded runbook for this alert</h2>
+        <p class="muted" id="runbook-gap-sub">Nearest neighbor was rejected. The agent will not apply a catalog fix.</p>
+      </div>
+      <button type="button" class="icon-btn" id="runbook-gap-close" aria-label="Close">✕</button>
+    </div>
+    <div class="gap-sim-row">
+      <div class="gap-sim-meter">
+        <div class="gap-sim-track"><div class="gap-sim-fill" id="runbook-gap-fill"></div></div>
+        <div class="gap-sim-labels">
+          <strong id="runbook-gap-pct">0%</strong>
+          <span class="muted">similarity · gate <span id="runbook-gap-gate">55%</span></span>
+        </div>
+      </div>
+      <div class="gap-nearest" id="runbook-gap-nearest">
+        <span class="pill p1">Rejected</span>
+        <code id="runbook-gap-nearest-id">—</code>
+      </div>
+    </div>
+    <ol class="gap-steps" id="runbook-gap-steps">
+      <li>Pull a precise log signature — a generic 500 is not enough to ground a runbook.</li>
+      <li>Check error rate, latency, and the last deploy for this service.</li>
+      <li>Open a ticket with the evidence pack so the incident is tracked.</li>
+      <li>Draft a new runbook from this signature and embed it in the vector index.</li>
+    </ol>
+    <p class="gap-rec muted" id="runbook-gap-rec"></p>
+    <div id="runbook-gap-draft" class="gap-draft hidden">
+      <div class="gap-draft-head">
+        <strong id="runbook-gap-draft-title">Draft runbook</strong>
+        <code id="runbook-gap-draft-id"></code>
+      </div>
+      <pre id="runbook-gap-draft-md" class="gap-draft-md"></pre>
+    </div>
+    <div class="gap-actions">
+      <button type="button" class="btn-ghost" id="runbook-gap-dismiss">Dismiss</button>
+      <button type="button" class="btn-outline" id="runbook-gap-ticket">Create ticket</button>
+      <button type="button" class="btn-outline" id="runbook-gap-draft-btn">Draft runbook</button>
+      <button type="button" class="btn-primary btn-glossy hidden" id="runbook-gap-embed"><span class="btn-shine"></span>Embed in vector DB</button>
+    </div>
+    <p class="gap-status muted" id="runbook-gap-status"></p>
+  </div>
+</div>
+
 <div id="mcp-add-server-modal" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="mcp-add-server-title">
   <div class="modal-card glossy-card profile-modal">
     <div class="modal-head">
@@ -1923,7 +1980,7 @@
   </div>
 </div>
 
-<script src="/static/icons.js?v=design1-6.20-governance"></script>
+<script src="/static/icons.js?v=design1-6.25-langfuse-v3"></script>
 <script>
   (function () {
     const capture = new URLSearchParams(location.search).get('capture');
@@ -1935,15 +1992,15 @@
   document.getElementById('login-logo').innerHTML = macIcon('logo', 'md');
   document.getElementById('header-logo').innerHTML = `<span class="mac-icon-shine"></span>${ICONS.logo}`;
 </script>
-<script src="/static/theme.js?v=design1-6.20-governance"></script>
-<script src="/static/designs/d1/stack.js?v=design1-6.20-governance"></script>
-<script src="/static/designs/d2/stack.js?v=design1-6.20-governance"></script>
-<script src="/static/designs/d3/stack.js?v=design1-6.20-governance"></script>
-<script src="/static/designs.js?v=design1-6.20-governance"></script>
-<script src="/static/app.js?v=design1-6.20-governance"></script>
-<script src="/static/learning-tips.js?v=design1-6.20-governance"></script>
-<script src="/static/learn.js?v=design1-6.20-governance"></script>
-<script src="/static/notebook-diagrams.js?v=design1-6.20-governance"></script>
-<script src="/static/notebook.js?v=design1-6.20-governance"></script>
+<script src="/static/theme.js?v=design1-6.25-langfuse-v3"></script>
+<script src="/static/designs/d1/stack.js?v=design1-6.25-langfuse-v3"></script>
+<script src="/static/designs/d2/stack.js?v=design1-6.25-langfuse-v3"></script>
+<script src="/static/designs/d3/stack.js?v=design1-6.25-langfuse-v3"></script>
+<script src="/static/designs.js?v=design1-6.25-langfuse-v3"></script>
+<script src="/static/app.js?v=design1-6.25-langfuse-v3"></script>
+<script src="/static/learning-tips.js?v=design1-6.25-langfuse-v3"></script>
+<script src="/static/learn.js?v=design1-6.25-langfuse-v3"></script>
+<script src="/static/notebook-diagrams.js?v=design1-6.25-langfuse-v3"></script>
+<script src="/static/notebook.js?v=design1-6.25-langfuse-v3"></script>
 </body>
 </html>
