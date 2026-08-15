@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>03 · Vector database — AgentOps</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@500;600;700&family=Fraunces:opsz,wght@9..144,500;600&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/deck.css">
+</head>
+<body>
+  <div class="ambient" aria-hidden="true">
+    <div class="orb orb-a"></div><div class="orb orb-b"></div><div class="orb orb-c"></div>
+    <div class="grid-overlay"></div>
+  </div>
+  <div class="deck">
+    <header class="deck-bar">
+      <div class="brand-lock">
+        <span data-ico="layers:teal:sm"></span>
+        <div><strong>AgentOps</strong><small>Topic 1 · Ingestion</small></div>
+      </div>
+      <span class="breadcrumb" id="deck-page-title">Vector DB</span>
+      <nav class="page-nav" id="page-nav"></nav>
+    </header>
+    <div class="stage-wrap">
+      <div class="stage">
+        <div class="progress"><i id="progress"></i></div>
+
+        <section class="slide is-on" data-notes="Vector search = retrieve by geometry of meaning. Distinct from keyword. Unstructured majority.">
+          <span class="chip">03 · Vector search</span>
+          <h1>Find neighbors in meaning-space</h1>
+          <p class="lede">Vector search ranks items by how close their embeddings sit, not by whether the same tokens appear. That is why it shows up in AI-native retrieval: logs, runbooks, images, and audio are unstructured, and equality indexes were never designed for them.</p>
+          <p class="hand">keyword = match the string · vector = match the neighborhood</p>
+        </section>
+
+        <section class="slide" data-notes="Pole star metaphor (original). Query vector, data vectors, cosine vs L2. Import-time embed + query-time embed.">
+          <span class="chip">How a query runs</span>
+          <h2>A pole star and the fleet around it</h2>
+          <div class="row row-2 grow">
+            <div class="pad">
+              <svg class="sketch" viewBox="0 0 420 210" role="img" aria-label="Query vector as pole star">
+                <circle class="q-star" cx="90" cy="105" r="9" fill="#ef4444"/>
+                <text x="90" y="38" text-anchor="middle">query vector</text>
+                <circle class="hit-glow" cx="168" cy="92" r="8" fill="#14b8a6"/>
+                <circle class="hit-glow" cx="186" cy="128" r="7" fill="#2dd4bf"/>
+                <circle cx="250" cy="70" r="6" fill="#94a3b8"/>
+                <circle cx="280" cy="150" r="6" fill="#94a3b8"/>
+                <circle cx="340" cy="88" r="6" fill="#c4b5fd"/>
+                <circle cx="360" cy="160" r="6" fill="#c4b5fd"/>
+                <path class="wobble draw" d="M90 105 L168 92" stroke="#0d9488" stroke-width="2"/>
+                <text x="168" y="78">near</text>
+                <text x="340" y="74">far</text>
+                <text x="210" y="198" text-anchor="middle" fill="#be185d">distance = similarity (cosine or L2)</text>
+              </svg>
+            </div>
+            <aside class="sticky b">on write: every object → vector<br>on search: question → query vector<br>DB returns closest coordinates<br><br>hard to picture 384 axes<br>the math still works</aside>
+          </div>
+        </section>
+
+        <section class="slide" data-notes="kNN measures every point (O(n)). ANN skips most of the space (≈ log n). Trade a little recall for milliseconds. Original diagrams — not boules, not Weaviate figs.">
+          <span class="chip">Why a database, not a Python loop</span>
+          <h2>Brute force vs a shortcut index</h2>
+          <div class="row row-2 grow">
+            <div class="pad">
+              <svg class="sketch" viewBox="0 0 400 190">
+                <text x="12" y="22">kNN · score everyone</text>
+                <circle class="q-star" cx="40" cy="100" r="7" fill="#ef4444"/>
+                <line class="knn-ray" x1="40" y1="100" x2="120" y2="50" stroke="#94a3b8"/>
+                <line class="knn-ray" x1="40" y1="100" x2="160" y2="90" stroke="#94a3b8"/>
+                <line class="knn-ray" x1="40" y1="100" x2="150" y2="150" stroke="#94a3b8"/>
+                <line class="knn-ray" x1="40" y1="100" x2="230" y2="40" stroke="#94a3b8"/>
+                <line class="knn-ray" x1="40" y1="100" x2="260" y2="120" stroke="#94a3b8"/>
+                <line class="knn-ray" x1="40" y1="100" x2="300" y2="170" stroke="#94a3b8"/>
+                <circle cx="120" cy="50" r="5" fill="#64748b"/>
+                <circle cx="160" cy="90" r="5" fill="#0d9488"/>
+                <circle cx="150" cy="150" r="5" fill="#64748b"/>
+                <circle cx="230" cy="40" r="5" fill="#64748b"/>
+                <circle cx="260" cy="120" r="5" fill="#64748b"/>
+                <circle cx="300" cy="170" r="5" fill="#64748b"/>
+                <text x="12" y="182" fill="#be185d">O(n) — 300 dims × 10M rows = billions of ops</text>
+              </svg>
+            </div>
+            <div class="pad">
+              <svg class="sketch" viewBox="0 0 400 190">
+                <text x="12" y="22">ANN · hop a graph (HNSW)</text>
+                <circle cx="60" cy="48" r="5" fill="#a78bfa"/>
+                <circle cx="180" cy="44" r="5" fill="#a78bfa"/>
+                <circle cx="300" cy="50" r="5" fill="#a78bfa"/>
+                <circle cx="90" cy="100" r="5" fill="#38bdf8"/>
+                <circle cx="200" cy="96" r="5" fill="#38bdf8"/>
+                <circle cx="80" cy="158" r="6" fill="#14b8a6"/>
+                <circle class="hit-glow" cx="170" cy="152" r="7" fill="#0d9488"/>
+                <circle cx="280" cy="160" r="5" fill="#94a3b8"/>
+                <path class="ann-path" d="M300 50 L200 96 L170 152" fill="none" stroke="#0d9488" stroke-width="2.4"/>
+                <text x="12" y="182" fill="#0f766e">≈ log n — miss a few true neighbors, gain milliseconds</text>
+              </svg>
+            </div>
+          </div>
+        </section>
+
+        <section class="slide" data-notes="Families of ANN. Hybrid BM25+vector. Libraries vs DBs. Original wording.">
+          <span class="chip">Mechanics</span>
+          <h2>What / why / how</h2>
+          <div class="whyhow grow">
+            <article class="card"><div class="q q-what">What</div><p>Store embeddings with their objects. Search = embed the query, return top-k under cosine or Euclidean distance. “Semantic search” is this ranking applied to language.</p></article>
+            <article class="card"><div class="q q-why">Why</div><p>A scratch loop over every vector does not survive millions of chunks. ANN (graphs like HNSW, trees, clusters, hashes) buys sub-linear time. You tune recall vs latency vs ingest cost.</p></article>
+            <article class="card"><div class="q q-how">How</div><p>HNSW: coarse hops on the upper layer, precise walk on the bottom. Hybrid search mixes this with keyword (BM25) so rare tokens — service names, error codes — still win. Libraries (FAISS) hold vectors; a vector database also persists, updates, and filters.</p></article>
+          </div>
+        </section>
+
+        <section class="slide" data-notes="Modalities and products. Don't copy Weaviate product pitch. Our own list.">
+          <span class="chip">In production</span>
+          <h2>Same geometry, many payloads</h2>
+          <div class="row row-3 grow">
+            <article class="card"><h3>Beyond text</h3><p>Images, audio, video, and mixed queries share one space if the encoder does. English can retrieve a French caption. A photo can retrieve a runbook screenshot.</p></article>
+            <article class="card"><h3>What it powers</h3><p>Site search, recommendations, and RAG (neighbors in, LLM out). Speed at tens of millions of passages is the reason this lives in a database, not a dict.</p></article>
+            <article class="card"><h3>What to pick</h3><p><strong>Chroma</strong> — local first. <strong>Pinecone</strong> — managed cloud. <strong>Weaviate</strong> — schema + filters. FAISS/Annoy if you only need an in-memory index.</p></article>
+          </div>
+        </section>
+
+        <section class="slide" data-notes="Our sentences, not pizza. Capstone. D1/D2/D3.">
+          <span class="chip">This course</span>
+          <h2>Checkout is the query vector</h2>
+          <p class="lede">Design 1 keeps Chroma on disk (HNSW under the hood). Design 2 is Weaviate. Design 3 is OpenSearch k-NN. We do not brute-force MiniLM vectors in Python at alert time.</p>
+          <article class="card our">
+            <h3>Capstone ranking (sketch)</h3>
+            <p>Query: “timeout waiting for redis pool.” Neighbors we want: <code>checkout-redis-pool</code> (high cosine). Neighbors we do not: payment CPU. Keyword-only would miss if the runbook never said “timeout.” Hybrid would still catch the token <code>Redis</code> if the embedding were weak. Tickets stay in PostgreSQL.</p>
+          </article>
+        </section>
+      </div>
+    </div>
+    <footer class="deck-foot">
+      <span class="hint">→ next · ← back · F fullscreen · N notes</span>
+      <div class="dots" id="dots"></div>
+      <span id="slide-num"></span>
+      <div class="ctrl">
+        <button type="button" id="notes-btn">Notes</button>
+        <button type="button" id="fs-btn">Fullscreen</button>
+        <button type="button" id="prev-btn">←</button>
+        <button type="button" id="next-btn">→</button>
+      </div>
+    </footer>
+  </div>
+  <aside class="notes" id="notes" hidden></aside>
+  <script src="js/deck.js"></script>
+</body>
+</html>

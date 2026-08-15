@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>04 · Metrics — AgentOps</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@500;600;700&family=Fraunces:opsz,wght@9..144,500;600&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../topic-01-ingestion/css/deck.css">
+</head>
+<body>
+  <div class="ambient" aria-hidden="true">
+    <div class="orb orb-a"></div><div class="orb orb-b"></div><div class="orb orb-c"></div>
+    <div class="grid-overlay"></div>
+  </div>
+  <div class="deck">
+    <header class="deck-bar">
+      <div class="brand-lock">
+        <span data-ico="pulse:blue:sm"></span>
+        <div><strong>AgentOps</strong><small>Topic 2 · Evaluation</small></div>
+      </div>
+      <span class="breadcrumb" id="deck-page-title">Metrics</span>
+      <nav class="page-nav" id="page-nav"></nav>
+    </header>
+    <div class="stage-wrap">
+      <div class="stage">
+        <div class="progress"><i id="progress"></i></div>
+
+        <section class="slide is-on" data-notes="Five metrics. Gate uses averages except judge which is published not gated.">
+          <span class="chip">04 · Metrics</span>
+          <h1>What we actually score</h1>
+          <p class="lede">Five numbers per case, then an average. The gate reads the averages. LLM-as-judge is recorded beside them so you can trend quality without letting a verbose model veto a correct ID.</p>
+        </section>
+
+        <section class="slide" data-notes="Animated bars with threshold marks.">
+          <span class="chip">Intuition</span>
+          <h2>Bars vs a red line</h2>
+          <div class="row row-2 grow">
+            <div class="pad" style="display:grid;gap:14px;padding:22px 28px">
+              <div>
+                <p class="tiny">RAG recall@3 · bar 0.85</p>
+                <div class="metric-track"><i class="metric-fill" style="--w:100%"></i><i class="metric-mark" style="left:85%"></i></div>
+              </div>
+              <div>
+                <p class="tiny">Groundedness · bar 0.80</p>
+                <div class="metric-track"><i class="metric-fill" style="--w:94%"></i><i class="metric-mark" style="left:80%"></i></div>
+              </div>
+              <div>
+                <p class="tiny">Correctness · bar 0.85</p>
+                <div class="metric-track"><i class="metric-fill" style="--w:100%"></i><i class="metric-mark" style="left:85%"></i></div>
+              </div>
+              <div>
+                <p class="tiny">Tool / HITL accuracy · bar 0.90</p>
+                <div class="metric-track"><i class="metric-fill" style="--w:100%"></i><i class="metric-mark" style="left:90%"></i></div>
+              </div>
+              <p class="hand" style="margin:0">pink tick = fail the suite if you land left of it</p>
+            </div>
+            <aside class="sticky r">recall: expected ID in top-3<br>correct: gated ID == expected<br>grounded: keywords in the rec<br>HITL: requires_hitl matches fixture<br>p95: graph time ≤ 8s</aside>
+          </div>
+        </section>
+
+        <section class="slide" data-notes="Gap cases: expected none. Similarity gate is a feature.">
+          <span class="chip">Mechanics</span>
+          <h2>What / why / how</h2>
+          <div class="whyhow grow">
+            <article class="card"><div class="q q-what">What</div><p><strong>Recall@3</strong> is retrieval. <strong>Correctness</strong> is the gated match after the similarity floor. They can disagree: nearest neighbor in top-3, still unmatched.</p></article>
+            <article class="card"><div class="q q-why">Why</div><p>A slow-query alert must not steal <code>db-pool-exhausted</code>. Unmatched + HITL is a pass. Forcing a catalog ID would teach the agent to hallucinate runbooks.</p></article>
+            <article class="card"><div class="q q-how">How</div><p>Fixtures declare <code>expected_runbook_id</code> (or <code>none</code>), keywords, <code>expects_hitl</code>. <code>_case_passed</code> is strict; the suite average is the gate.</p></article>
+          </div>
+        </section>
+
+        <section class="slide" data-notes="Industry metric names: faithfulness, answer relevancy, context precision.">
+          <span class="chip">In production</span>
+          <h2>Same ideas, different names</h2>
+          <div class="row row-3 grow">
+            <article class="card"><h3>Faithfulness</h3><p>Did the answer stay inside retrieved context? Our groundedness is a cheap keyword cousin; the judge is the prose cousin.</p></article>
+            <article class="card"><h3>Context precision</h3><p>Were the retrieved chunks actually useful? Recall@3 is “did the right ID appear,” not “was chunk 2 noise.”</p></article>
+            <article class="card"><h3>Latency SLO</h3><p>A perfect ID at 40s is still a page. p95 is in the gate because ops agents are on-call tools.</p></article>
+          </div>
+        </section>
+
+        <section class="slide" data-notes="Two cases we fixed: TLS vs auth spike; slow query vs pool.">
+          <span class="chip">This course</span>
+          <h2>Labels have to match the gate</h2>
+          <p class="lede">TLS expiry is <code>tls-certificate-expiry</code>, not auth 5xx. Slow queries are a <strong>gap</strong> (<code>none</code>). If the fixture lies, the gate punishes a correct agent.</p>
+          <article class="card our">
+            <h3>Capstone</h3>
+            <p>Checkout deploy → <code>checkout-redis-pool</code>, HITL true, keywords redis / connection. Miss that ID and correctness is 0 for the case — enough to sink the 0.85 average if it happens often.</p>
+          </article>
+        </section>
+      </div>
+    </div>
+    <footer class="deck-foot">
+      <span class="hint">→ next · ← back · F fullscreen · N notes</span>
+      <div class="dots" id="dots"></div>
+      <span id="slide-num"></span>
+      <div class="ctrl">
+        <button type="button" id="notes-btn">Notes</button>
+        <button type="button" id="fs-btn">Fullscreen</button>
+        <button type="button" id="prev-btn">←</button>
+        <button type="button" id="next-btn">→</button>
+      </div>
+    </footer>
+  </div>
+  <aside class="notes" id="notes" hidden></aside>
+  <script>
+    window.DECK_PAGES = [
+      { file: 'index.html', n: '00', title: 'Cover' },
+      { file: '01-what-is-eval.html', n: '01', title: 'What is eval' },
+      { file: '02-eval-gate.html', n: '02', title: 'Eval gate' },
+      { file: '03-llm-as-judge.html', n: '03', title: 'LLM-as-judge' },
+      { file: '04-metrics.html', n: '04', title: 'Metrics' },
+      { file: '05-agentops.html', n: '05', title: 'AgentOps' },
+    ];
+  </script>
+  <script src="../topic-01-ingestion/js/deck.js"></script>
+</body>
+</html>

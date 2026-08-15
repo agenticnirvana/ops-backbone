@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>01 · What is eval — AgentOps</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@500;600;700&family=Fraunces:opsz,wght@9..144,500;600&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../topic-01-ingestion/css/deck.css">
+</head>
+<body>
+  <div class="ambient" aria-hidden="true">
+    <div class="orb orb-a"></div><div class="orb orb-b"></div><div class="orb orb-c"></div>
+    <div class="grid-overlay"></div>
+  </div>
+  <div class="deck">
+    <header class="deck-bar">
+      <div class="brand-lock">
+        <span data-ico="shield:purple:sm"></span>
+        <div><strong>AgentOps</strong><small>Topic 2 · Evaluation</small></div>
+      </div>
+      <span class="breadcrumb" id="deck-page-title">What is eval</span>
+      <nav class="page-nav" id="page-nav"></nav>
+    </header>
+    <div class="stage-wrap">
+      <div class="stage">
+        <div class="progress"><i id="progress"></i></div>
+
+        <section class="slide is-on" data-notes="Definition first. Eval is repeated, scored, comparable runs — not a vibe check after a demo.">
+          <span class="chip">01 · Eval</span>
+          <h1>A test suite for behavior</h1>
+          <p class="lede">Evaluation is a fixed set of inputs, a live (or mocked) agent, and numeric scores you can compare across commits. The corpus is a <strong>golden set</strong>: alerts whose expected <code>runbook_id</code>, HITL flag, and keywords you already trust.</p>
+          <p class="hand">if you cannot fail it, it is not an eval</p>
+        </section>
+
+        <section class="slide" data-notes="Sketch: pytest vs golden set. Don't say simple English.">
+          <span class="chip">Intuition</span>
+          <h2>Code tests vs agent tests</h2>
+          <div class="row row-2 grow">
+            <div class="pad">
+              <svg class="sketch" viewBox="0 0 420 200">
+                <rect class="wobble draw" x="22" y="28" width="168" height="144" rx="8"/>
+                <text x="106" y="58" text-anchor="middle">unit / pytest</text>
+                <text x="106" y="92" text-anchor="middle" fill="#0f766e">function in → out</text>
+                <text x="106" y="118" text-anchor="middle">deterministic</text>
+                <text x="106" y="144" text-anchor="middle">asserts a type</text>
+                <rect class="wobble draw" x="230" y="28" width="168" height="144" rx="8"/>
+                <text x="314" y="58" text-anchor="middle">golden eval</text>
+                <text x="314" y="92" text-anchor="middle" fill="#7c3aed">alert in → graph</text>
+                <text x="314" y="118" text-anchor="middle">ranking + wording</text>
+                <text x="314" y="144" text-anchor="middle">asserts a runbook</text>
+              </svg>
+            </div>
+            <aside class="sticky r">pytest: did query_metrics return a dict?<br><br>eval: did checkout P1 retrieve<br>checkout-redis-pool<br>and stop at HITL?</aside>
+          </div>
+        </section>
+
+        <section class="slide" data-notes="What why how.">
+          <span class="chip">Mechanics</span>
+          <h2>What / why / how</h2>
+          <div class="whyhow grow">
+            <article class="card"><div class="q q-what">What</div><p>Offline regression: replay known incidents through the same LangGraph the console uses. Score retrieval, recommendation, tools, latency.</p></article>
+            <article class="card"><div class="q q-why">Why</div><p>LLMs and ANN indexes drift. A prompt tweak that “sounds better” can swap Redis pool for Postgres restart. You need a number, not a demo.</p></article>
+            <article class="card"><div class="q q-how">How</div><p>Load <code>golden_alerts.json</code> → <code>graph.invoke</code> per case → deterministic metrics + optional LLM-as-judge → averages vs thresholds.</p></article>
+          </div>
+        </section>
+
+        <section class="slide" data-notes="Industry: RAGAS, LangSmith evals, DeepEval, Hugging Face lighteval. Don't copy vendor blogs.">
+          <span class="chip">In production</span>
+          <h2>Where teams actually use it</h2>
+          <div class="row row-3 grow">
+            <article class="card"><h3>Pre-merge</h3><p>Every PR that touches prompts, chunking, or the graph must beat last week’s golden set.</p></article>
+            <article class="card"><h3>Release</h3><p>Staging promote waits on the same suite. Four-eyes is people; the gate is math.</p></article>
+            <article class="card"><h3>Drift watch</h3><p>Nightly replay against production traces. If recall drops after a reindex, you catch it before on-call does.</p></article>
+          </div>
+        </section>
+
+        <section class="slide" data-notes="Eight fixtures. Capstone is checkout.">
+          <span class="chip">This course</span>
+          <h2>Eight incidents, one verdict</h2>
+          <p class="lede">Payment CPU, auth 5xx, TLS expiry, DB pool, slow queries (gap), checkout Redis — the same files you ingest in Topic 1. Eval is how we know the index is usable, not merely populated.</p>
+          <article class="card our">
+            <h3>Capstone</h3>
+            <p><code>eval-checkout-deploy</code> must land on <code>checkout-redis-pool</code> with HITL. If it does not, the suite fails. That failure is the point.</p>
+          </article>
+        </section>
+      </div>
+    </div>
+    <footer class="deck-foot">
+      <span class="hint">→ next · ← back · F fullscreen · N notes</span>
+      <div class="dots" id="dots"></div>
+      <span id="slide-num"></span>
+      <div class="ctrl">
+        <button type="button" id="notes-btn">Notes</button>
+        <button type="button" id="fs-btn">Fullscreen</button>
+        <button type="button" id="prev-btn">←</button>
+        <button type="button" id="next-btn">→</button>
+      </div>
+    </footer>
+  </div>
+  <aside class="notes" id="notes" hidden></aside>
+  <script>
+    window.DECK_PAGES = [
+      { file: 'index.html', n: '00', title: 'Cover' },
+      { file: '01-what-is-eval.html', n: '01', title: 'What is eval' },
+      { file: '02-eval-gate.html', n: '02', title: 'Eval gate' },
+      { file: '03-llm-as-judge.html', n: '03', title: 'LLM-as-judge' },
+      { file: '04-metrics.html', n: '04', title: 'Metrics' },
+      { file: '05-agentops.html', n: '05', title: 'AgentOps' },
+    ];
+  </script>
+  <script src="../topic-01-ingestion/js/deck.js"></script>
+</body>
+</html>

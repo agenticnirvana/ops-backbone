@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>01 · Ingestion pipeline — AgentOps</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@500;600;700&family=Fraunces:opsz,wght@9..144,500;600&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/deck.css">
+</head>
+<body>
+  <div class="ambient" aria-hidden="true">
+    <div class="orb orb-a"></div><div class="orb orb-b"></div><div class="orb orb-c"></div>
+    <div class="grid-overlay"></div>
+  </div>
+  <div class="deck">
+    <header class="deck-bar">
+      <div class="brand-lock">
+        <span data-ico="layers:teal:sm"></span>
+        <div><strong>AgentOps</strong><small>Topic 1 · Ingestion</small></div>
+      </div>
+      <span class="breadcrumb" id="deck-page-title">Ingestion</span>
+      <nav class="page-nav" id="page-nav"></nav>
+    </header>
+    <div class="stage-wrap">
+      <div class="stage">
+        <div class="progress"><i id="progress"></i></div>
+
+        <section class="slide is-on" data-notes="Definition. Pipeline = staged path. Ingestion = load into a usable store. Happens before inference.">
+          <span class="chip">01 · Ingestion pipeline</span>
+          <h1>Data has to land before anything reasons</h1>
+          <p class="lede">An ingestion pipeline is a staged path that takes sources — files, events, streams — and writes them into a store a program can query. It is not the model. It is the work that makes the model useful on <em>your</em> corpus.</p>
+          <p class="hand">offline path · not the chat loop</p>
+        </section>
+
+        <section class="slide" data-notes="Whiteboard: warehouse receiving dock. Point at stations.">
+          <span class="chip">Intuition</span>
+          <h2>Receiving dock → warehouse</h2>
+          <div class="row row-2 grow">
+            <div class="pad">
+              <svg class="sketch" viewBox="0 0 420 200">
+                <path class="wobble draw" d="M30 110 C 90 108, 140 112, 200 110 S 310 108, 390 111"/>
+                <rect class="wobble draw" x="18" y="48" width="78" height="44" rx="6"/>
+                <rect class="wobble draw" x="118" y="48" width="78" height="44" rx="6"/>
+                <rect class="wobble draw" x="218" y="48" width="78" height="44" rx="6"/>
+                <rect class="wobble draw" x="318" y="48" width="78" height="44" rx="6"/>
+                <text x="57" y="76" text-anchor="middle">truck</text>
+                <text x="157" y="76" text-anchor="middle">unpack</text>
+                <text x="257" y="76" text-anchor="middle">label</text>
+                <text x="357" y="76" text-anchor="middle">shelf</text>
+                <text x="210" y="168" text-anchor="middle" fill="#be185d">query happens later — on the shelf, not the truck</text>
+              </svg>
+            </div>
+            <aside class="sticky r">if it never hits the shelf,<br>the night shift can’t find it.<br><br>same for runbooks.</aside>
+          </div>
+        </section>
+
+        <section class="slide" data-notes="What why how. Expert, short.">
+          <span class="chip">Mechanics</span>
+          <h2>What / why / how</h2>
+          <div class="whyhow grow">
+            <article class="card"><div class="q q-what">What</div><p>A repeatable job: extract sources, transform them, load a queryable index. Batch or on change.</p></article>
+            <article class="card"><div class="q q-why">Why</div><p>Training data is not your wiki. Without a load path, every answer is parametric memory plus luck.</p></article>
+            <article class="card"><div class="q q-how">How</div><p>Source → parse → (optional split) → write. Schedule it. Version the output so readers never see a half-built index.</p></article>
+          </div>
+        </section>
+
+        <section class="slide" data-notes="Industry: mail, media, regulated docs. Stale ingest = wrong answers.">
+          <span class="chip">In production</span>
+          <h2>Where this already runs</h2>
+          <div class="row row-3 grow">
+            <article class="card"><h3>Search &amp; mail</h3><p>Messages are indexed on arrival. Search does not scan the raw inbox at query time.</p></article>
+            <article class="card"><h3>Media platforms</h3><p>Upload kicks a pipeline: transcode, thumbnails, labels. Playback is a different path.</p></article>
+            <article class="card"><h3>Regulated knowledge</h3><p>Banks and hospitals ingest with provenance and ACL metadata. Late or unlabeled load is a compliance incident.</p></article>
+          </div>
+          <p class="hand-teal hand" style="font-size:1.4rem">stale ingest → confident wrong answers</p>
+        </section>
+
+        <section class="slide" data-notes="Our stack. Two pipes. checkout file. Phase 1.">
+          <span class="chip">This course</span>
+          <h2>AgentOps Phase 1</h2>
+          <p class="lede">Knowledge: Git (and optional Drive) → <code>runbook-ingestion</code> → Chroma. Signals: Alertmanager, Loki, Prometheus. The graph does not start until both exist.</p>
+          <article class="card our">
+            <h3>Capstone</h3>
+            <p><code>checkout-redis-pool.md</code> is the inbound file. Until this pipeline writes it, a P1 on <code>/checkout</code> has no procedure to retrieve — only a model guessing “restart Redis.”</p>
+          </article>
+          <div class="life">
+            <div class="ph is-now"><small>1 Ingestion</small><b>load the corpus</b></div>
+            <div class="ph"><small>2 Orchestration</small><b>query it</b></div>
+            <div class="ph"><small>3 Evaluation</small><b>was the ID right?</b></div>
+            <div class="ph"><small>4 Guardrails</small><b>cite before approve</b></div>
+            <div class="ph"><small>5 Action</small><b>ticket names source</b></div>
+          </div>
+        </section>
+      </div>
+    </div>
+    <footer class="deck-foot">
+      <span class="hint">→ next · ← back · F fullscreen · N notes</span>
+      <div class="dots" id="dots"></div>
+      <span id="slide-num"></span>
+      <div class="ctrl">
+        <button type="button" id="notes-btn">Notes</button>
+        <button type="button" id="fs-btn">Fullscreen</button>
+        <button type="button" id="prev-btn">←</button>
+        <button type="button" id="next-btn">→</button>
+      </div>
+    </footer>
+  </div>
+  <aside class="notes" id="notes" hidden></aside>
+  <script src="js/deck.js"></script>
+</body>
+</html>

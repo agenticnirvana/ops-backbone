@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>02 · RAG — AgentOps</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@500;600;700&family=Fraunces:opsz,wght@9..144,500;600&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/deck.css">
+</head>
+<body>
+  <div class="ambient" aria-hidden="true">
+    <div class="orb orb-a"></div><div class="orb orb-b"></div><div class="orb orb-c"></div>
+    <div class="grid-overlay"></div>
+  </div>
+  <div class="deck">
+    <header class="deck-bar">
+      <div class="brand-lock">
+        <span data-ico="layers:teal:sm"></span>
+        <div><strong>AgentOps</strong><small>Topic 1 · Ingestion</small></div>
+      </div>
+      <span class="breadcrumb" id="deck-page-title">RAG</span>
+      <nav class="page-nav" id="page-nav"></nav>
+    </header>
+    <div class="stage-wrap">
+      <div class="stage">
+        <div class="progress"><i id="progress"></i></div>
+
+        <section class="slide is-on" data-notes="Lewis 2020 idea without dumping the paper: parametric vs non-parametric memory.">
+          <span class="chip">02 · RAG</span>
+          <h1>Retrieve, then generate</h1>
+          <p class="lede">Retrieval-augmented generation pairs a model’s parametric memory (weights) with a non-parametric store (your documents). That store — usually a vector database — is the LLM’s <strong>long-term memory</strong>: facts you can update without retraining. At inference, relevant passages are fetched and the generator conditions on them.</p>
+          <p class="hand">weights = short-term · vector index = long-term</p>
+        </section>
+
+        <section class="slide" data-notes="Sketch: closed book vs open book. Don't say 'easy example'.">
+          <span class="chip">Intuition</span>
+          <h2>Closed book vs open book</h2>
+          <div class="row row-2 grow">
+            <div class="pad">
+              <svg class="sketch" viewBox="0 0 420 200">
+                <rect class="wobble draw" x="24" y="36" width="150" height="120" rx="8"/>
+                <text x="99" y="70" text-anchor="middle">closed book</text>
+                <text x="99" y="102" text-anchor="middle" fill="#be185d">weights only</text>
+                <text x="99" y="128" text-anchor="middle">invents a password</text>
+                <rect class="wobble draw" x="246" y="36" width="150" height="120" rx="8"/>
+                <text x="321" y="70" text-anchor="middle">open book</text>
+                <text x="321" y="102" text-anchor="middle" fill="#0f766e">wiki page + Q</text>
+                <text x="321" y="128" text-anchor="middle">cites the page</text>
+                <path class="wobble draw" d="M186 96 L236 96"/>
+              </svg>
+            </div>
+            <aside class="sticky">R  look up the pages<br>A  put them in context<br>G  write from that context</aside>
+          </div>
+        </section>
+
+        <section class="slide" data-notes="What why how.">
+          <span class="chip">Mechanics</span>
+          <h2>What / why / how</h2>
+          <div class="whyhow grow">
+            <article class="card"><div class="q q-what">What</div><p>Search the corpus first; generate second. Retrieval is a ranking problem. Generation is a language problem. Keep them separate.</p></article>
+            <article class="card"><div class="q q-why">Why</div><p>Policies change weekly. Weights do not. Lookup is cheaper than fine-tunes, and you can score whether the right passage returned.</p></article>
+            <article class="card"><div class="q q-how">How</div><p>Embed the query → top-k chunks (ANN, not a full scan) → prompt → generate. Optionally hybrid with keywords. Gate on similarity when the nearest neighbor is still the wrong domain.</p></article>
+          </div>
+        </section>
+
+        <section class="slide" data-notes="Support, copilots, high-stakes drafts.">
+          <span class="chip">In production</span>
+          <h2>Where teams actually use it</h2>
+          <div class="row row-3 grow">
+            <article class="card"><h3>Support &amp; policy bots</h3><p>Returns policy updates Tuesday; answers follow Wednesday. No retrain.</p></article>
+            <article class="card"><h3>Repo / doc copilots</h3><p>Pull the local API, not a random tutorial from 2019.</p></article>
+            <article class="card"><h3>High-stakes drafts</h3><p>Legal and clinical flows still need a human. RAG’s job is the right paragraph plus a citation.</p></article>
+          </div>
+        </section>
+
+        <section class="slide" data-notes="retrieve_runbook. Paraphrase match. Eval ID.">
+          <span class="chip">This course</span>
+          <h2>Graph node: retrieve_runbook</h2>
+          <p class="lede">Alert text: pool timeout. File id: <code>checkout-redis-pool</code>. Different surface form, same incident. RAG has to return that runbook, then recommend, then stop at HITL.</p>
+          <article class="card our">
+            <h3>Capstone</h3>
+            <p>Miss the ID and the agent may restart Postgres. Golden evals fail on purpose. RAG is the handshake from Phase 1’s index into Phase 2’s graph.</p>
+          </article>
+        </section>
+      </div>
+    </div>
+    <footer class="deck-foot">
+      <span class="hint">→ next · ← back · F fullscreen · N notes</span>
+      <div class="dots" id="dots"></div>
+      <span id="slide-num"></span>
+      <div class="ctrl">
+        <button type="button" id="notes-btn">Notes</button>
+        <button type="button" id="fs-btn">Fullscreen</button>
+        <button type="button" id="prev-btn">←</button>
+        <button type="button" id="next-btn">→</button>
+      </div>
+    </footer>
+  </div>
+  <aside class="notes" id="notes" hidden></aside>
+  <script src="js/deck.js"></script>
+</body>
+</html>

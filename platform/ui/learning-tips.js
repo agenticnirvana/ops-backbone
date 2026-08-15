@@ -180,12 +180,20 @@ const SECTION_LEARNING_TIPS = {
   },
   learning: {
     default: {
-      icon: '📓',
-      title: 'The AgentOps notebook',
-      learn: 'Open-book UI: chapters per phase, page-turn, bookmarks, margin notes. Chapter 1 starts with vector databases — what / why / why not SQL / viz / OSS vs cloud.',
-      try: '← → or click page edges. 🔖 to dog-ear. First real lesson: What is a vector DB?',
-      practice: 'Toggle Vector vs Keyword on the nearest-neighbor sketch, then open {ingestTab}.',
-      action: { section: 'learning', tab: 'learn-notebook', label: 'Open notebook' },
+      icon: '🎬',
+      title: 'Teaching deck',
+      learn: 'First tab in Learning. Topic 1 = ingestion (how runbooks get into Chroma). Topic 2 = evaluation (golden set, eval-gate, LLM-as-judge). Notebook skins are a different tab.',
+      try: 'Stay on Teaching. Click Topic 2 · Evaluation, then Present fullscreen.',
+      practice: 'Walk 02 Eval gate, then open Evaluation → Eval & Scores and run the suite.',
+      action: { section: 'learning', tab: 'learn-slides', label: 'Open teaching deck' },
+    },
+    'learn-slides': {
+      icon: '🎬',
+      title: 'Teaching · two topics',
+      learn: 'Topic 1: pipeline, RAG, vector DB, embeddings, parse. Topic 2: what eval is, the merge gate, LLM-as-judge, metrics, where it lives in this console and GitHub.',
+      try: 'Click Topic 2. Open 03 LLM-as-judge. Then Evaluation → Eval & Scores.',
+      practice: 'After the deck, run the golden set and look for eval-gate / golden-set on GitHub.',
+      action: { section: 'evaluation', tab: 'eval-gate', label: 'Open Eval & Scores' },
     },
     'learn-notebook': {
       icon: '📖',

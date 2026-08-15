@@ -7723,3 +7723,80 @@ body[data-section="actions"] .glossy-card .card-shine::after { animation-duratio
   .theme-sky.is-playing { display: none !important; }
 }
 
+.topic-slides-hero { margin-bottom: 16px; }
+.teach-topics {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  padding: 0 16px 12px;
+}
+.teach-topic {
+  text-align: left;
+  display: grid;
+  gap: 2px;
+  padding: 14px 16px;
+  border-radius: 16px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  cursor: pointer;
+  color: inherit;
+  font: inherit;
+  transition: border-color var(--dur-fast) var(--ease-soft), transform var(--dur-fast) var(--ease-soft), box-shadow var(--dur-fast) ease;
+}
+.teach-topic span {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--accent-primary);
+}
+.teach-topic strong { font-size: 18px; font-family: Fraunces, Georgia, serif; }
+.teach-topic small { color: var(--muted); font-size: 12px; }
+.teach-topic:hover { border-color: var(--accent-cyan); transform: translateY(-1px); }
+.teach-topic.is-on {
+  border-color: rgba(13, 148, 136, 0.45);
+  box-shadow: var(--gloss-shadow);
+  background: linear-gradient(180deg, rgba(45, 212, 191, 0.08), var(--surface));
+}
+.topic-slides-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  padding: 0 16px 12px;
+}
+.topic-slides-grid[hidden] { display: none !important; }
+.topic-slide-card {
+  display: grid;
+  gap: 4px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  text-decoration: none;
+  color: inherit;
+  transition: border-color var(--dur-fast) var(--ease-soft), transform var(--dur-fast) var(--ease-soft);
+}
+.topic-slide-card span {
+  font-family: Fraunces, Georgia, serif;
+  font-size: 18px;
+  color: var(--accent-primary);
+}
+.topic-slide-card strong { font-size: 14px; }
+.topic-slide-card small { color: var(--muted); font-size: 12px; }
+.topic-slide-card:hover {
+  border-color: var(--accent-cyan);
+  transform: translateY(-1px);
+}
+.topic-slides-keys { padding: 0 16px 16px; }
+.topic-slides-frame {
+  width: 100%;
+  min-height: min(72vh, 820px);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: var(--bg-primary);
+  box-shadow: var(--gloss-shadow);
+}
+@media (max-width: 900px) {
+  .topic-slides-grid, .teach-topics { grid-template-columns: 1fr 1fr; }
+}
+
