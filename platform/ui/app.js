@@ -172,9 +172,10 @@ const SECTIONS = {
   },
   learning: {
     title: 'Learning',
-    subtitle: 'Notebook · hardcover · Kindle · Stories',
-    breadcrumb: 'Platform › Learning › Notebook',
+    subtitle: 'Teaching deck · notebook · designs',
+    breadcrumb: 'Platform › Learning › Teaching',
     tabs: [
+      { id: 'learn-slides', label: 'Teaching' },
       { id: 'learn-notebook', label: 'Notebook' },
       { id: 'learn-designs', label: 'Designs' },
       { id: 'learn-bookmarks', label: 'Bookmarks' },

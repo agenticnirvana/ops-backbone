@@ -7,7 +7,7 @@
   <title>Production AgentOps Platform</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@500;700&family=Fraunces:opsz,wght@9..144,500;700&family=Literata:opsz,wght@7..72,400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/static/styles.css?v=design1-6.25-langfuse-v3">
+  <link rel="stylesheet" href="/static/styles.css?v=design1-6.27-teaching">
   <script>
     (function () {
       var t = localStorage.getItem('agentops-theme');
@@ -1641,7 +1641,50 @@
 
         <!-- LEARNING -->
         <section id="sec-learning" class="section-panel hidden">
-          <div id="tab-learn-notebook" class="tab-panel">
+          <div id="tab-learn-slides" class="tab-panel">
+            <div class="card glossy-card topic-slides-hero">
+              <div class="card-header">
+                <div>
+                  <h3>Teaching deck</h3>
+                  <p class="muted">16:9 lecture slides for recording. Topic 1 is the data path. Topic 2 is how we prove the agent is safe to promote. Notebook skins stay on the other tab.</p>
+                </div>
+                <div class="card-header-actions">
+                  <a class="btn-primary btn-glossy btn-sm" id="teach-present" href="/static/learn/topic-01-ingestion/index.html" target="_blank" rel="noopener"><span class="btn-shine"></span>Present fullscreen</a>
+                </div>
+              </div>
+              <div class="teach-topics" id="teach-topics" role="tablist">
+                <button type="button" class="teach-topic is-on" data-topic="t1" role="tab" aria-selected="true">
+                  <span>Topic 1</span>
+                  <strong>Ingestion</strong>
+                  <small>Pipeline · RAG · vector DB · embeddings · parse</small>
+                </button>
+                <button type="button" class="teach-topic" data-topic="t2" role="tab" aria-selected="false">
+                  <span>Topic 2</span>
+                  <strong>Evaluation</strong>
+                  <small>Golden set · eval-gate · LLM-as-judge · AgentOps</small>
+                </button>
+              </div>
+              <div class="topic-slides-grid is-on" id="topic-slides-grid-t1" data-topic="t1">
+                <a class="topic-slide-card" href="/static/learn/topic-01-ingestion/index.html"><span>00</span><strong>Cover</strong><small>Why this topic exists</small></a>
+                <a class="topic-slide-card" href="/static/learn/topic-01-ingestion/01-ingestion-pipeline.html"><span>01</span><strong>Ingestion pipeline</strong><small>How data enters</small></a>
+                <a class="topic-slide-card" href="/static/learn/topic-01-ingestion/02-rag.html"><span>02</span><strong>RAG</strong><small>Retrieve, then generate</small></a>
+                <a class="topic-slide-card" href="/static/learn/topic-01-ingestion/03-vector-database.html"><span>03</span><strong>Vector database</strong><small>Nearest neighbor</small></a>
+                <a class="topic-slide-card" href="/static/learn/topic-01-ingestion/04-embeddings.html"><span>04</span><strong>Embeddings</strong><small>Meaning as coordinates</small></a>
+                <a class="topic-slide-card" href="/static/learn/topic-01-ingestion/05-runbook-pipeline.html"><span>05</span><strong>Parse &amp; store</strong><small>Chunk, label, index</small></a>
+              </div>
+              <div class="topic-slides-grid" id="topic-slides-grid-t2" data-topic="t2" hidden>
+                <a class="topic-slide-card" href="/static/learn/topic-02-evals/index.html"><span>00</span><strong>Cover</strong><small>Why eval exists in ops</small></a>
+                <a class="topic-slide-card" href="/static/learn/topic-02-evals/01-what-is-eval.html"><span>01</span><strong>What is eval</strong><small>Golden set vs unit tests</small></a>
+                <a class="topic-slide-card" href="/static/learn/topic-02-evals/02-eval-gate.html"><span>02</span><strong>Eval gate</strong><small>Thresholds that block merge</small></a>
+                <a class="topic-slide-card" href="/static/learn/topic-02-evals/03-llm-as-judge.html"><span>03</span><strong>LLM-as-judge</strong><small>A model scores a model</small></a>
+                <a class="topic-slide-card" href="/static/learn/topic-02-evals/04-metrics.html"><span>04</span><strong>Metrics</strong><small>Recall · grounded · correct</small></a>
+                <a class="topic-slide-card" href="/static/learn/topic-02-evals/05-agentops.html"><span>05</span><strong>In AgentOps</strong><small>Console · GitHub · Langfuse</small></a>
+              </div>
+              <p class="muted topic-slides-keys">In the deck: → next · ← back · F fullscreen · N speaker notes. Hard-refresh (⌘⇧R) if you still see the old Notebook tab first.</p>
+            </div>
+            <iframe id="topic-slides-frame" class="topic-slides-frame" title="Teaching slides" src="/static/learn/topic-01-ingestion/index.html"></iframe>
+          </div>
+          <div id="tab-learn-notebook" class="tab-panel hidden">
             <div id="nb-root"></div>
           </div>
           <div id="tab-learn-bookmarks" class="tab-panel hidden">
@@ -1997,10 +2040,10 @@
 <script src="/static/designs/d2/stack.js?v=design1-6.25-langfuse-v3"></script>
 <script src="/static/designs/d3/stack.js?v=design1-6.25-langfuse-v3"></script>
 <script src="/static/designs.js?v=design1-6.25-langfuse-v3"></script>
-<script src="/static/app.js?v=design1-6.25-langfuse-v3"></script>
-<script src="/static/learning-tips.js?v=design1-6.25-langfuse-v3"></script>
-<script src="/static/learn.js?v=design1-6.25-langfuse-v3"></script>
+<script src="/static/app.js?v=design1-6.27-teaching"></script>
+<script src="/static/learning-tips.js?v=design1-6.27-teaching"></script>
+<script src="/static/learn.js?v=design1-6.27-teaching"></script>
 <script src="/static/notebook-diagrams.js?v=design1-6.25-langfuse-v3"></script>
-<script src="/static/notebook.js?v=design1-6.25-langfuse-v3"></script>
+<script src="/static/notebook.js?v=design1-6.27-teaching"></script>
 </body>
 </html>

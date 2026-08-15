@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>AgentOps teaching decks</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="topic-01-ingestion/css/deck.css">
+  <style>
+    .hub { max-width: 920px; margin: 8vh auto; padding: 0 24px; position: relative; z-index: 1; }
+    .hub h1 { font-size: clamp(36px, 5vw, 56px); max-width: 16ch; }
+    .hub-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 28px; }
+    .hub-grid a { text-decoration: none; color: inherit; }
+    @media (max-width: 720px) { .hub-grid { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+  <div class="ambient" aria-hidden="true">
+    <div class="orb orb-a"></div><div class="orb orb-b"></div><div class="orb orb-c"></div>
+    <div class="grid-overlay"></div>
+  </div>
+  <main class="hub">
+    <span class="chip">AgentOps · ops-backbone</span>
+    <h1>Teaching decks</h1>
+    <p class="lede">Push to <code>main</code> and this site updates. These are the lecture slides — not the live Docker console (Langfuse, Weaviate, and the rest still run locally).</p>
+    <div class="hub-grid">
+      <a class="card" href="topic-01-ingestion/index.html">
+        <div class="q q-what">Topic 1</div>
+        <h3>Ingestion</h3>
+        <p>Pipeline, RAG, vector database, embeddings, parse and store.</p>
+      </a>
+      <a class="card" href="topic-02-evals/index.html">
+        <div class="q q-why">Topic 2</div>
+        <h3>Evaluation</h3>
+        <p>Golden set, eval-gate, LLM-as-judge, metrics, AgentOps lifecycle.</p>
+      </a>
+    </div>
+  </main>
+</body>
+</html>

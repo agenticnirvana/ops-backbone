@@ -1290,9 +1290,60 @@ function renderDesignsTab() {
   });
 }
 
+function bindTeachingHub() {
+  const frame = document.getElementById('topic-slides-frame');
+  const topics = document.getElementById('teach-topics');
+  const present = document.getElementById('teach-present');
+  const grids = {
+    t1: document.getElementById('topic-slides-grid-t1'),
+    t2: document.getElementById('topic-slides-grid-t2'),
+  };
+  const home = {
+    t1: '/static/learn/topic-01-ingestion/index.html',
+    t2: '/static/learn/topic-02-evals/index.html',
+  };
+
+  function showTopic(id) {
+    topics?.querySelectorAll('.teach-topic').forEach((btn) => {
+      const on = btn.dataset.topic === id;
+      btn.classList.toggle('is-on', on);
+      btn.setAttribute('aria-selected', on ? 'true' : 'false');
+    });
+    Object.entries(grids).forEach(([key, el]) => {
+      if (!el) return;
+      el.hidden = key !== id;
+    });
+    if (present) present.href = home[id] || home.t1;
+    if (frame && home[id]) frame.src = home[id];
+  }
+
+  if (topics && !topics.dataset.bound) {
+    topics.dataset.bound = '1';
+    topics.addEventListener('click', (e) => {
+      const btn = e.target.closest('.teach-topic');
+      if (btn?.dataset.topic) showTopic(btn.dataset.topic);
+    });
+  }
+  document.querySelectorAll('#topic-slides-grid-t1, #topic-slides-grid-t2').forEach((grid) => {
+    if (grid.dataset.bound) return;
+    grid.dataset.bound = '1';
+    grid.addEventListener('click', (e) => {
+      const a = e.target.closest('.topic-slide-card');
+      if (!a || !frame || e.metaKey || e.ctrlKey) return;
+      e.preventDefault();
+      frame.src = a.getAttribute('href');
+      if (present) present.href = a.getAttribute('href');
+    });
+  });
+}
+
 function initLearningSection(tabId) {
   nbLoadState();
-  const tab = tabId || 'learn-notebook';
+  const tab = tabId || 'learn-slides';
+  if (tab === 'learn-slides') {
+    bindTeachingHub();
+    return;
+  }
   if (tab === 'learn-bookmarks') {
     renderNotebookBookmarks();
     return;

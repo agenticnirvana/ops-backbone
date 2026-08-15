@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>02 · Eval gate — AgentOps</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@500;600;700&family=Fraunces:opsz,wght@9..144,500;600&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../topic-01-ingestion/css/deck.css">
+</head>
+<body>
+  <div class="ambient" aria-hidden="true">
+    <div class="orb orb-a"></div><div class="orb orb-b"></div><div class="orb orb-c"></div>
+    <div class="grid-overlay"></div>
+  </div>
+  <div class="deck">
+    <header class="deck-bar">
+      <div class="brand-lock">
+        <span data-ico="shield:purple:sm"></span>
+        <div><strong>AgentOps</strong><small>Topic 2 · Evaluation</small></div>
+      </div>
+      <span class="breadcrumb" id="deck-page-title">Eval gate</span>
+      <nav class="page-nav" id="page-nav"></nav>
+    </header>
+    <div class="stage-wrap">
+      <div class="stage">
+        <div class="progress"><i id="progress"></i></div>
+
+        <section class="slide is-on" data-notes="Gate = threshold that can say no. Scores without a gate are dashboards. Gates are policy.">
+          <span class="chip">02 · Gate</span>
+          <h1>A score that can refuse</h1>
+          <p class="lede">An <strong>eval gate</strong> is a contract: averages must clear published bars or the change does not merge. It is the AgentOps analogue of a coverage gate or a security scan — except the subject is retrieval and remediation, not lines of code.</p>
+          <p class="hand">observability tells you what happened · a gate decides if it may ship</p>
+        </section>
+
+        <section class="slide" data-notes="Animated: commit rolls, barrier lifts on pass.">
+          <span class="chip">Intuition</span>
+          <h2>The boom across the runway</h2>
+          <div class="row row-2 grow">
+            <div class="pad">
+              <svg class="sketch gate-scene" viewBox="0 0 420 200">
+                <text x="36" y="36">commit</text>
+                <rect class="wobble commit" x="28" y="88" width="52" height="28" rx="6"/>
+                <text class="commit" x="54" y="107" text-anchor="middle" font-size="14">SHA</text>
+                <rect class="wobble bar" x="198" y="48" width="16" height="110" rx="3"/>
+                <text x="206" y="38" text-anchor="middle">gate</text>
+                <path class="wobble" d="M240 102 L318 102"/>
+                <text class="pass" x="348" y="108" fill="#0f766e">main</text>
+                <text x="54" y="168">ci / lint · unit · secrets</text>
+                <text x="250" y="168" fill="#7c3aed">eval-gate / golden-set</text>
+              </svg>
+            </div>
+            <aside class="sticky">lint can pass<br>and the agent still<br>picks the wrong runbook<br><br>that is why this bar exists</aside>
+          </div>
+        </section>
+
+        <section class="slide" data-notes="Thresholds from run_evals.py. Fail closed.">
+          <span class="chip">Mechanics</span>
+          <h2>What / why / how</h2>
+          <div class="whyhow grow">
+            <article class="card"><div class="q q-what">What</div><p>Boolean over averages: RAG recall ≥ 0.85, groundedness ≥ 0.80, correctness ≥ 0.85, tool accuracy ≥ 0.90, p95 ≤ 8s. One metric under and <code>passed: false</code>.</p></article>
+            <article class="card"><div class="q q-why">Why</div><p>Without a bar, evals become theatre. Teams will merge “small prompt edits” forever. The gate makes the golden set load-bearing.</p></article>
+            <article class="card"><div class="q q-how">How</div><p>GitHub Actions: build index → <code>python -m evals.run_evals</code> → parse JSON → exit 1 on fail. Required check on <code>main</code>: <code>eval-gate / golden-set</code>.</p></article>
+          </div>
+        </section>
+
+        <section class="slide" data-notes="Industry: required checks, canary evals, promote environments.">
+          <span class="chip">In production</span>
+          <h2>Where the gate sits</h2>
+          <div class="row row-3 grow">
+            <article class="card"><h3>Pull request</h3><p>Required status check. Merge button stays grey until golden-set is green. Same idea as “tests must pass.”</p></article>
+            <article class="card"><h3>Promote</h3><p>Staging / production workflows re-run the suite before a SHA is blessed. Reviewers are humans; the gate is still the suite.</p></article>
+            <article class="card"><h3>Fail closed</h3><p>If the runner crashes, that is a fail, not a skip. You do not promote an agent you could not score.</p></article>
+          </div>
+        </section>
+
+        <section class="slide" data-notes="ops-backbone ruleset. Two cases we relabeled: TLS and slow-query gap.">
+          <span class="chip">This course</span>
+          <h2>Check name: eval-gate / golden-set</h2>
+          <p class="lede">Workflow <code>.github/workflows/eval-gate.yml</code>. Job <code>golden-set</code>. The ruleset on <code>main</code> will not merge a PR that skips it. Lint is not a substitute.</p>
+          <article class="card our">
+            <h3>Capstone</h3>
+            <p>A graph change that retrieves <code>db-pool-exhausted</code> for a Redis checkout P1 will drop correctness and trip the gate. That is the safety property Topic 1’s index is supposed to enable.</p>
+          </article>
+        </section>
+      </div>
+    </div>
+    <footer class="deck-foot">
+      <span class="hint">→ next · ← back · F fullscreen · N notes</span>
+      <div class="dots" id="dots"></div>
+      <span id="slide-num"></span>
+      <div class="ctrl">
+        <button type="button" id="notes-btn">Notes</button>
+        <button type="button" id="fs-btn">Fullscreen</button>
+        <button type="button" id="prev-btn">←</button>
+        <button type="button" id="next-btn">→</button>
+      </div>
+    </footer>
+  </div>
+  <aside class="notes" id="notes" hidden></aside>
+  <script>
+    window.DECK_PAGES = [
+      { file: 'index.html', n: '00', title: 'Cover' },
+      { file: '01-what-is-eval.html', n: '01', title: 'What is eval' },
+      { file: '02-eval-gate.html', n: '02', title: 'Eval gate' },
+      { file: '03-llm-as-judge.html', n: '03', title: 'LLM-as-judge' },
+      { file: '04-metrics.html', n: '04', title: 'Metrics' },
+      { file: '05-agentops.html', n: '05', title: 'AgentOps' },
+    ];
+  </script>
+  <script src="../topic-01-ingestion/js/deck.js"></script>
+</body>
+</html>

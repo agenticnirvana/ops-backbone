@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>05 · Parse & store — AgentOps</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@500;600;700&family=Fraunces:opsz,wght@9..144,500;600&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/deck.css">
+</head>
+<body>
+  <div class="ambient" aria-hidden="true">
+    <div class="orb orb-a"></div><div class="orb orb-b"></div><div class="orb orb-c"></div>
+    <div class="grid-overlay"></div>
+  </div>
+  <div class="deck">
+    <header class="deck-bar">
+      <div class="brand-lock">
+        <span data-ico="layers:teal:sm"></span>
+        <div><strong>AgentOps</strong><small>Topic 1 · Ingestion</small></div>
+      </div>
+      <span class="breadcrumb" id="deck-page-title">Parse &amp; store</span>
+      <nav class="page-nav" id="page-nav"></nav>
+    </header>
+    <div class="stage-wrap">
+      <div class="stage">
+        <div class="progress"><i id="progress"></i></div>
+
+        <section class="slide is-on" data-notes="Chunking + metadata. Whole-doc vectors mix diagnosis with escalation.">
+          <span class="chip">05 · Parse &amp; store</span>
+          <h1>Split, label, then index</h1>
+          <p class="lede">A document is parsed for metadata, cut into overlapping chunks, embedded, and upserted. One vector per file mixes diagnosis with escalation; retrieval then returns a blur. Chunking is usually a bigger quality lever than swapping the LLM.</p>
+          <p class="hand">overlap keeps a heading attached to its steps</p>
+        </section>
+
+        <section class="slide" data-notes="Sketch: one book vs per-recipe.">
+          <span class="chip">Intuition</span>
+          <h2>Index the recipe, not the cookbook</h2>
+          <div class="row row-2 grow">
+            <div class="pad">
+              <svg class="sketch" viewBox="0 0 420 200">
+                <rect class="wobble draw" x="28" y="28" width="110" height="150" rx="6"/>
+                <text x="83" y="70" text-anchor="middle">whole.md</text>
+                <text x="83" y="100" text-anchor="middle" fill="#be185d">one vector</text>
+                <path class="wobble draw" d="M160 100 L 210 100"/>
+                <rect class="wobble draw" x="228" y="28" width="150" height="40" rx="5"/>
+                <rect class="wobble draw" x="228" y="80" width="150" height="40" rx="5"/>
+                <rect class="wobble draw" x="228" y="132" width="150" height="40" rx="5"/>
+                <text x="303" y="54" text-anchor="middle">chunk 0  diagnosis</text>
+                <text x="303" y="106" text-anchor="middle">chunk 1  fix + HITL</text>
+                <text x="303" y="158" text-anchor="middle">chunk 2  verify</text>
+              </svg>
+            </div>
+            <aside class="sticky">metadata on each piece:<br>runbook_id · service · severity<br><br>filter later, don’t hope</aside>
+          </div>
+        </section>
+
+        <section class="slide" data-notes="What why how.">
+          <span class="chip">Mechanics</span>
+          <h2>What / why / how</h2>
+          <div class="whyhow grow">
+            <article class="card"><div class="q q-what">What</div><p>Parse labels from the file. Window the text. Embed each window. Write <code>(id, text, meta, vector)</code>.</p></article>
+            <article class="card"><div class="q q-why">Why</div><p>Questions hit a paragraph, not a wiki. Labels let you constrain “checkout only” after similarity.</p></article>
+            <article class="card"><div class="q q-how">How</div><p>Hash files; re-embed what changed. Full rebuild writes a new collection and swaps an alias so readers never see a torn index.</p></article>
+          </div>
+        </section>
+
+        <section class="slide" data-notes="Drive/SharePoint nightly. Most RAG failures are chunking.">
+          <span class="chip">In production</span>
+          <h2>The “chat with this PDF” factory</h2>
+          <div class="row row-3 grow">
+            <article class="card"><h3>Drop-zone sync</h3><p>Nightly pull from Drive / SharePoint, chunk, embed, store. Morning queries hit last night’s index.</p></article>
+            <article class="card"><h3>Changing SOPs</h3><p>Re-run only deltas or you cite last year’s refund policy.</p></article>
+            <article class="card"><h3>Failure mode</h3><p>Most “RAG is dumb” tickets are bad windows or missing metadata — not a weak generator.</p></article>
+          </div>
+        </section>
+
+        <section class="slide" data-notes="400 / 64. checkout-redis-pool-0. Topic 1 close.">
+          <span class="chip">This course</span>
+          <h2>How the capstone file is stored</h2>
+          <p class="lede">Seed markdown → parse service/severity → ~400-word windows, 64 overlap → MiniLM → Chroma ids <code>checkout-redis-pool-0</code> … Alias in <code>active.json</code>.</p>
+          <article class="card our">
+            <h3>Capstone</h3>
+            <p>The P1 should retrieve the remediation chunk (Helm <code>REDIS_MAX_CONNECTIONS</code>, HITL). LangGraph, eval, approval, and the ticket all hang off that <code>runbook_id</code>. Topic 1 ends when the library exists. Topic 2 — Evaluation — is how we prove it.</p>
+          </article>
+        </section>
+      </div>
+    </div>
+    <footer class="deck-foot">
+      <span class="hint">→ next · ← back · F fullscreen · N notes</span>
+      <div class="dots" id="dots"></div>
+      <span id="slide-num"></span>
+      <div class="ctrl">
+        <button type="button" id="notes-btn">Notes</button>
+        <button type="button" id="fs-btn">Fullscreen</button>
+        <button type="button" id="prev-btn">←</button>
+        <button type="button" id="next-btn">→</button>
+      </div>
+    </footer>
+  </div>
+  <aside class="notes" id="notes" hidden></aside>
+  <script src="js/deck.js"></script>
+</body>
+</html>

@@ -1,8 +1,12 @@
 # GitHub governance
 
-Private backbone: [agenticnirvana/ops-backbone](https://github.com/agenticnirvana/ops-backbone)
+Private backbone (now public): [agenticnirvana/ops-backbone](https://github.com/agenticnirvana/ops-backbone)
 
 This is **not** the student-facing course repository. Students should receive a later clean squash with a course name. Author on this history is `AgentOps Platform`, not a personal identity.
+
+Teaching decks (static, free): https://agenticnirvana.github.io/ops-backbone/
+
+The live console + Langfuse / Weaviate / Elasticsearch / Ollama **cannot** run on GitHub Pages. That stack stays `docker compose` on a machine with RAM.
 
 ## What ships
 
@@ -12,6 +16,7 @@ This is **not** the student-facing course repository. Students should receive a 
 | Local gate | `scripts/ci/local-gate.sh` |
 | CI (lint / unit / secret-scan) | `.github/workflows/ci.yml` |
 | Eval gate (required check) | `.github/workflows/eval-gate.yml` |
+| Teaching decks (GitHub Pages) | `.github/workflows/pages.yml` → https://agenticnirvana.github.io/ops-backbone/ |
 | Promote with environment reviewers | `.github/workflows/promote.yml` |
 | CODEOWNERS | `.github/CODEOWNERS` |
 | Environments / required checks | `deploy/github/config.yml` |

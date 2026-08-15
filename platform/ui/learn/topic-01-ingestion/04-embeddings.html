@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>04 · Embeddings — AgentOps</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@500;600;700&family=Fraunces:opsz,wght@9..144,500;600&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/deck.css">
+</head>
+<body>
+  <div class="ambient" aria-hidden="true">
+    <div class="orb orb-a"></div><div class="orb orb-b"></div><div class="orb orb-c"></div>
+    <div class="grid-overlay"></div>
+  </div>
+  <div class="deck">
+    <header class="deck-bar">
+      <div class="brand-lock">
+        <span data-ico="layers:teal:sm"></span>
+        <div><strong>AgentOps</strong><small>Topic 1 · Ingestion</small></div>
+      </div>
+      <span class="breadcrumb" id="deck-page-title">Embeddings</span>
+      <nav class="page-nav" id="page-nav"></nav>
+    </header>
+    <div class="stage-wrap">
+      <div class="stage">
+        <div class="progress"><i id="progress"></i></div>
+
+        <section class="slide is-on" data-notes="Embedding model = neural net. Unstructured → feature vector. Database only stores what this model writes.">
+          <span class="chip">04 · Embeddings</span>
+          <h1>The model that writes the map</h1>
+          <p class="lede">An embedding model is a neural network that turns unstructured input — a sentence, an image, a clip — into a vector of features. Similar items land in the same region of that space. The vector database does not “understand” language; it only stores and compares the numbers this model emits.</p>
+          <p class="hand">same checkpoint on ingest and on query</p>
+        </section>
+
+        <section class="slide" data-notes="Classic King Queen Man Woman vs Monkey. Handwritten clusters.">
+          <span class="chip">Intuition</span>
+          <h2>King, Queen, Monkey</h2>
+          <div class="row row-2 grow">
+            <div class="pad">
+              <svg class="sketch" viewBox="0 0 420 200">
+                <circle class="wobble draw" cx="120" cy="70" r="8"/>
+                <circle class="wobble draw" cx="168" cy="58" r="8"/>
+                <circle class="wobble draw" cx="130" cy="118" r="8"/>
+                <circle class="wobble draw" cx="178" cy="108" r="8"/>
+                <text x="120" y="48" text-anchor="middle">King</text>
+                <text x="188" y="42" text-anchor="middle">Queen</text>
+                <text x="118" y="148" text-anchor="middle">Man</text>
+                <text x="198" y="138" text-anchor="middle">Woman</text>
+                <circle class="wobble draw" cx="340" cy="150" r="8"/>
+                <text x="340" y="178" text-anchor="middle">Monkey</text>
+                <text x="150" y="28" fill="#0f766e">royal / people cluster</text>
+                <text x="300" y="70" fill="#be185d">far away</text>
+              </svg>
+            </div>
+            <aside class="sticky r">cosine = angle<br>L2 = straight-line gap<br>normalized MiniLM → cosine ≈ dot<br><br>pool timeout ≈ max connections<br>CPU saturation sits elsewhere</aside>
+          </div>
+        </section>
+
+        <section class="slide" data-notes="What why how. Providers: HF OSS (us), OpenAI paid, Google. We use MiniLM.">
+          <span class="chip">Mechanics</span>
+          <h2>What / why / how</h2>
+          <div class="whyhow grow">
+            <article class="card"><div class="q q-what">What</div><p>A neural encoder: raw item in, fixed-length floats out. Ours is MiniLM, 384 dimensions, from Hugging Face / sentence-transformers.</p></article>
+            <article class="card"><div class="q q-why">Why</div><p>So paraphrase clusters. Keyword overlap is optional. That is the only reason “cute dog” can retrieve a golden retriever.</p></article>
+            <article class="card"><div class="q q-how">How</div><p>Pick a provider (Hugging Face OSS, OpenAI paid, Google APIs), embed at write, embed the query with the <strong>same</strong> model, compare cosine. Swap the model → rebuild the index.</p></article>
+          </div>
+        </section>
+
+        <section class="slide" data-notes="Semantic search + recs from the video, mapped to ops.">
+          <span class="chip">In production</span>
+          <h2>Search and recommend sit on the same map</h2>
+          <div class="row row-3 grow">
+            <article class="card"><h3>Semantic search</h3><p>Query meaning, not title match. Image and text both work once they are vectors.</p></article>
+            <article class="card"><h3>Recommendations</h3><p>Nearest neighbors of what you already consumed. Same index type as RAG.</p></article>
+            <article class="card"><h3>Providers</h3><p>Start on Hugging Face locally (this course). Move to a hosted embedding API only when you need a larger model or SLA.</p></article>
+          </div>
+        </section>
+
+        <section class="slide" data-notes="MiniLM in Chroma. checkout vs payment.">
+          <span class="chip">This course</span>
+          <h2>MiniLM fills every Chroma row</h2>
+          <p class="lede"><code>all-MiniLM-L6-v2</code> writes the 384-d vector. Chroma stores <code>id</code>, document, metadata, embedding. The live alert is embedded with that same checkpoint — not OpenAI, not a hash.</p>
+          <article class="card our">
+            <h3>Capstone</h3>
+            <p>“Timeout waiting for connection pool (Redis)” should sit with “Redis pool exhaustion,” the way King sits with Queen. “Payment CPU” is the Monkey — a different cluster, a different runbook.</p>
+          </article>
+        </section>
+      </div>
+    </div>
+    <footer class="deck-foot">
+      <span class="hint">→ next · ← back · F fullscreen · N notes</span>
+      <div class="dots" id="dots"></div>
+      <span id="slide-num"></span>
+      <div class="ctrl">
+        <button type="button" id="notes-btn">Notes</button>
+        <button type="button" id="fs-btn">Fullscreen</button>
+        <button type="button" id="prev-btn">←</button>
+        <button type="button" id="next-btn">→</button>
+      </div>
+    </footer>
+  </div>
+  <aside class="notes" id="notes" hidden></aside>
+  <script src="js/deck.js"></script>
+</body>
+</html>

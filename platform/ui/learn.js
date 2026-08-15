@@ -738,7 +738,8 @@ function bindLearnGoButtons(root) {
 
 function initLearningSection(tabId) {
   if (typeof renderNotebook === 'function') {
-    const tab = tabId || 'learn-notebook';
+    const tab = tabId || 'learn-slides';
+    if (tab === 'learn-slides') return;
     if (tab === 'learn-bookmarks' && typeof renderNotebookBookmarks === 'function') {
       renderNotebookBookmarks();
       return;

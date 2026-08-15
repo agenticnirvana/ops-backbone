@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Topic 2 · Evaluation — AgentOps</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@500;600;700&family=Fraunces:opsz,wght@9..144,500;600&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../topic-01-ingestion/css/deck.css">
+</head>
+<body>
+  <div class="ambient" aria-hidden="true">
+    <div class="orb orb-a"></div><div class="orb orb-b"></div><div class="orb orb-c"></div>
+    <div class="grid-overlay"></div>
+  </div>
+  <div class="deck">
+    <header class="deck-bar">
+      <div class="brand-lock">
+        <span data-ico="shield:purple:sm"></span>
+        <div><strong>AgentOps</strong><small>Topic 2 · Evaluation</small></div>
+      </div>
+      <span class="breadcrumb" id="deck-page-title">Cover</span>
+      <nav class="page-nav" id="page-nav"></nav>
+    </header>
+    <div class="stage-wrap">
+      <div class="stage">
+        <div class="progress"><i id="progress"></i></div>
+
+        <section class="slide is-on" data-notes="Open: retrieval can be correct and the agent still unsafe. Eval is the test harness for a non-deterministic system.">
+          <span class="chip">Topic 2</span>
+          <h1>Evaluation</h1>
+          <p class="lede">An agent that retrieves <code>checkout-redis-pool</code> once in a demo is not a product. Evaluation is how AgentOps treats the graph as a system under test: fixtures in, scores out, a gate that can refuse to ship.</p>
+          <aside class="sticky">unit tests check code paths<br>evals check behavior<br>gates check whether we promote</aside>
+        </section>
+
+        <section class="slide" data-notes="Five lessons. Same arc as Topic 1.">
+          <span class="chip">Lessons</span>
+          <h2>What we will pin down</h2>
+          <div class="agenda grow">
+            <a href="01-what-is-eval.html"><span class="n">01</span><span><strong>What is eval</strong><br><small>Golden set vs unit tests</small></span><span data-ico="search:teal:sm"></span></a>
+            <a href="02-eval-gate.html"><span class="n">02</span><span><strong>Eval gate</strong><br><small>Thresholds that block merge</small></span><span data-ico="shield:purple:sm"></span></a>
+            <a href="03-llm-as-judge.html"><span class="n">03</span><span><strong>LLM-as-judge</strong><br><small>A model scores a model</small></span><span data-ico="eye:indigo:sm"></span></a>
+            <a href="04-metrics.html"><span class="n">04</span><span><strong>Metrics</strong><br><small>Recall · grounded · correct</small></span><span data-ico="pulse:blue:sm"></span></a>
+            <a href="05-agentops.html"><span class="n">05</span><span><strong>In AgentOps</strong><br><small>Console · GitHub · Langfuse</small></span><span data-ico="layers:green:sm"></span></a>
+          </div>
+        </section>
+      </div>
+    </div>
+    <footer class="deck-foot">
+      <span class="hint">→ next · ← back · F fullscreen · N notes</span>
+      <div class="dots" id="dots"></div>
+      <span id="slide-num"></span>
+      <div class="ctrl">
+        <button type="button" id="notes-btn">Notes</button>
+        <button type="button" id="fs-btn">Fullscreen</button>
+        <button type="button" id="prev-btn">←</button>
+        <button type="button" id="next-btn">→</button>
+      </div>
+    </footer>
+  </div>
+  <aside class="notes" id="notes" hidden></aside>
+  <script>
+    window.DECK_PAGES = [
+      { file: 'index.html', n: '00', title: 'Cover' },
+      { file: '01-what-is-eval.html', n: '01', title: 'What is eval' },
+      { file: '02-eval-gate.html', n: '02', title: 'Eval gate' },
+      { file: '03-llm-as-judge.html', n: '03', title: 'LLM-as-judge' },
+      { file: '04-metrics.html', n: '04', title: 'Metrics' },
+      { file: '05-agentops.html', n: '05', title: 'AgentOps' },
+    ];
+  </script>
+  <script src="../topic-01-ingestion/js/deck.js"></script>
+</body>
+</html>

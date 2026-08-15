@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>03 · LLM-as-judge — AgentOps</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@500;600;700&family=Fraunces:opsz,wght@9..144,500;600&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../topic-01-ingestion/css/deck.css">
+</head>
+<body>
+  <div class="ambient" aria-hidden="true">
+    <div class="orb orb-a"></div><div class="orb orb-b"></div><div class="orb orb-c"></div>
+    <div class="grid-overlay"></div>
+  </div>
+  <div class="deck">
+    <header class="deck-bar">
+      <div class="brand-lock">
+        <span data-ico="eye:indigo:sm"></span>
+        <div><strong>AgentOps</strong><small>Topic 2 · Evaluation</small></div>
+      </div>
+      <span class="breadcrumb" id="deck-page-title">LLM-as-judge</span>
+      <nav class="page-nav" id="page-nav"></nav>
+    </header>
+    <div class="stage-wrap">
+      <div class="stage">
+        <div class="progress"><i id="progress"></i></div>
+
+        <section class="slide is-on" data-notes="Zheng et al. MT-Bench / LLM-as-a-judge idea without dumping the paper. Second model with a rubric.">
+          <span class="chip">03 · Judge</span>
+          <h1>A model that grades a model</h1>
+          <p class="lede"><strong>LLM-as-judge</strong> is a second call with a rubric: given the alert, the recommendation, expected vs actual runbook, return <code>{score: 0–1, reason}</code>. It scores qualities exact match cannot — specificity, grounded wording, whether the advice is actually usable.</p>
+          <p class="hand">correctness is ID equality · the judge is prose quality</p>
+        </section>
+
+        <section class="slide" data-notes="Sketch: agent → rec → judge ring 0.9">
+          <span class="chip">Intuition</span>
+          <h2>Two roles, two prompts</h2>
+          <div class="row row-2 grow">
+            <div class="pad">
+              <svg class="sketch" viewBox="0 0 420 200">
+                <rect class="wobble draw" x="18" y="50" width="110" height="88" rx="8"/>
+                <text x="73" y="88" text-anchor="middle">agent</text>
+                <text x="73" y="114" text-anchor="middle">recommend</text>
+                <path class="wobble draw" d="M132 94 L176 94"/>
+                <rect class="wobble draw" x="176" y="58" width="88" height="72" rx="8"/>
+                <text x="220" y="100" text-anchor="middle">rec</text>
+                <path class="wobble draw" d="M268 94 L312 94"/>
+                <circle cx="358" cy="94" r="36" fill="none" stroke="#cbd5e1" stroke-width="8"/>
+                <circle class="judge-ring" cx="358" cy="94" r="32"/>
+                <text x="358" y="90" text-anchor="middle" fill="#0f766e">0.90</text>
+                <text x="358" y="112" text-anchor="middle">judge</text>
+              </svg>
+            </div>
+            <aside class="sticky b">rubric in the system prompt<br>JSON only<br><br>do not let the judge<br>invent a runbook_id<br>— that is correctness’s job</aside>
+          </div>
+        </section>
+
+        <section class="slide" data-notes="Limitations: bias, cost, self-preference. Keep exact-match as the gate; judge as a published score.">
+          <span class="chip">Mechanics</span>
+          <h2>What / why / how</h2>
+          <div class="whyhow grow">
+            <article class="card"><div class="q q-what">What</div><p>A grader LLM. Same stack as the agent in CI (<code>MOCK_LLM</code> returns a stub 0.9). In the live console it can be the real model.</p></article>
+            <article class="card"><div class="q q-why">Why</div><p>String equality on <code>runbook_id</code> cannot tell “increase REDIS_MAX_CONNECTIONS to 150” from “restart everything.” Operators need that distinction.</p></article>
+            <article class="card"><div class="q q-how">How</div><p><code>evals/llm_judge.py</code> → <code>judge_recommendation</code>. Score is recorded per case and published to Langfuse / Phoenix / MLflow. It is <em>not</em> the merge boolean.</p></article>
+          </div>
+        </section>
+
+        <section class="slide" data-notes="G-Eval, RAGAS faithfulness, pairwise judges. Caveats.">
+          <span class="chip">In production</span>
+          <h2>Use it. Do not worship it.</h2>
+          <div class="row row-3 grow">
+            <article class="card"><h3>Pairwise / rubric</h3><p>Support orgs grade “was this answer grounded in the retrieved doc?” at scale. Humans spot-check the judge.</p></article>
+            <article class="card"><h3>Known failure modes</h3><p>Length bias, self-preference, position bias. A judge that wrote the agent prompt will like its own style.</p></article>
+            <article class="card"><h3>Split of labor</h3><p>Exact metrics own the gate. The judge owns a Langfuse score you can trend. Mixing them hides regressions.</p></article>
+          </div>
+        </section>
+
+        <section class="slide" data-notes="Our judge prompt. Mock in CI. Live in Evaluation tab.">
+          <span class="chip">This course</span>
+          <h2>SRE judge, JSON back</h2>
+          <p class="lede">System: score groundedness, specificity, alignment with the expected runbook. User payload: alert, recommendation preview, expected/actual IDs, keywords. Output clamped to <code>[0, 1]</code>.</p>
+          <article class="card our">
+            <h3>Capstone</h3>
+            <p>Checkout rec that cites Helm <code>REDIS_MAX_CONNECTIONS</code> scores high even if wording differs from the runbook. A rec that says “restart Postgres” with the right ID still looks bad to the judge — and should.</p>
+          </article>
+        </section>
+      </div>
+    </div>
+    <footer class="deck-foot">
+      <span class="hint">→ next · ← back · F fullscreen · N notes</span>
+      <div class="dots" id="dots"></div>
+      <span id="slide-num"></span>
+      <div class="ctrl">
+        <button type="button" id="notes-btn">Notes</button>
+        <button type="button" id="fs-btn">Fullscreen</button>
+        <button type="button" id="prev-btn">←</button>
+        <button type="button" id="next-btn">→</button>
+      </div>
+    </footer>
+  </div>
+  <aside class="notes" id="notes" hidden></aside>
+  <script>
+    window.DECK_PAGES = [
+      { file: 'index.html', n: '00', title: 'Cover' },
+      { file: '01-what-is-eval.html', n: '01', title: 'What is eval' },
+      { file: '02-eval-gate.html', n: '02', title: 'Eval gate' },
+      { file: '03-llm-as-judge.html', n: '03', title: 'LLM-as-judge' },
+      { file: '04-metrics.html', n: '04', title: 'Metrics' },
+      { file: '05-agentops.html', n: '05', title: 'AgentOps' },
+    ];
+  </script>
+  <script src="../topic-01-ingestion/js/deck.js"></script>
+</body>
+</html>
