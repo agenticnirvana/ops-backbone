@@ -33,7 +33,7 @@ def load_golden() -> list[dict]:
 def eval_rag_recall(case: dict) -> float:
     alert = case["alert"]
     expected = case.get("expected_runbook_id")
-    if not expected:
+    if not expected or expected == "none":
         return 1.0
     query = f"{alert['service']} {alert.get('error_summary', '')}"
     chunks = retrieve_runbooks(query, service=alert.get("service"), top_k=3)
@@ -43,6 +43,8 @@ def eval_rag_recall(case: dict) -> float:
 
 def eval_groundedness(case: dict, result: dict) -> float:
     rec = result.get("recommendation", "").lower()
+    if case.get("expected_runbook_id") == "none":
+        return 1.0 if result.get("runbook_id") == "none" else 0.0
     chunks = result.get("runbook_chunks") or []
     if not chunks:
         return 0.0

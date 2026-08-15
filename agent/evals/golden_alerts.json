@@ -72,8 +72,8 @@
       "error_summary": "TLS certificate expiring in 24h",
       "log_snippet": "cert expiry warning from ingress controller"
     },
-    "expected_runbook_id": "auth-error-spike",
-    "grounded_keywords": ["certificate", "token"],
+    "expected_runbook_id": "tls-certificate-expiry",
+    "grounded_keywords": ["certificate", "cert-manager", "renewal"],
     "expects_hitl": true,
     "expects_ticket": false
   },
@@ -85,9 +85,9 @@
       "error_summary": "Slow query latency p95 above 2s",
       "log_snippet": "SELECT orders timing out intermittently"
     },
-    "expected_runbook_id": "db-pool-exhausted",
-    "grounded_keywords": ["pool", "query"],
-    "expects_hitl": false,
+    "expected_runbook_id": "none",
+    "grounded_keywords": ["runbook", "ticket"],
+    "expects_hitl": true,
     "expects_ticket": false
   },
   {

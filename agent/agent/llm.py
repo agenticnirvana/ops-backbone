@@ -119,14 +119,20 @@ def _mock_response(system: str, user: str, error: str | None = None) -> str:
                 }
             )
         service = ""
+        alert: dict = {}
         try:
             payload = json.loads(user)
-            service = payload.get("alert", {}).get("service", "")
+            alert = payload.get("alert") or {}
+            service = alert.get("service", "")
         except json.JSONDecodeError:
             pass
         runbook_id = "payment-high-cpu"
         recommendation = "Rollback recent deploy and scale horizontally. Restart requires approval."
-        if service == "auth-service":
+        alert_text = f"{alert.get('error_summary', '')} {alert.get('log_snippet', '')}".lower()
+        if "tls" in alert_text or "certificate expir" in alert_text or "cert expiry" in alert_text:
+            runbook_id = "tls-certificate-expiry"
+            recommendation = "Force cert-manager renewal or upload cert from Vault. Requires approval."
+        elif service == "auth-service":
             runbook_id = "auth-error-spike"
             recommendation = "Check IdP status and rotate certificate if JWT validation fails."
         elif service == "order-service":

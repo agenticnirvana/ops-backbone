@@ -18,6 +18,39 @@ This is **not** the student-facing course repository. Students should receive a 
 
 ## One-time GitHub settings
 
+Protected branches and CODEOWNERS-as-required-reviewers need **GitHub Pro** (or a public repo) on a personal private repository. `ops-backbone` is private on a Free user account, so the API returns 403 until you upgrade or change visibility.
+
+After Pro (or making the repo public), run:
+
+```bash
+gh api --method PUT repos/agenticnirvana/ops-backbone/branches/main/protection \
+  --input - <<'EOF'
+{
+  "required_status_checks": {
+    "strict": true,
+    "checks": [
+      {"context": "ci / lint"},
+      {"context": "ci / unit"},
+      {"context": "ci / secret-scan"},
+      {"context": "eval-gate / golden-set"}
+    ]
+  },
+  "enforce_admins": true,
+  "required_pull_request_reviews": {
+    "dismiss_stale_reviews": true,
+    "require_code_owner_reviews": true,
+    "required_approving_review_count": 1
+  },
+  "restrictions": null,
+  "required_linear_history": true,
+  "allow_force_pushes": false,
+  "allow_deletions": false
+}
+EOF
+```
+
+Until then, eval-gate still **runs** on every push and pull request; it just cannot block the merge button.
+
 1. Settings → Environments → create `staging` and `production` with required reviewers (four-eyes).
 2. Settings → Branches → protect `main` with: `ci / lint`, `ci / unit`, `ci / secret-scan`, `eval-gate / golden-set`.
 3. Settings → Secrets: `GOVERNANCE_WEBHOOK_URL`, `GOVERNANCE_WEBHOOK_TOKEN`, ingestion secrets.
