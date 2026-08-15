@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Weaviate · Runbook cluster</title>
+  <link rel="icon" href="/static/designs/d2/logos/weaviate.svg">
+  <style>
+    :root {
+      --bg: #0b1220;
+      --panel: #121a2b;
+      --line: #243049;
+      --text: #e8eef8;
+      --muted: #8b9bb4;
+      --green: #00a88a;
+      --green-dim: rgba(0, 168, 138, 0.16);
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+      background: radial-gradient(1200px 600px at 10% -10%, #123, var(--bg));
+      color: var(--text); min-height: 100vh;
+    }
+    header {
+      display: flex; align-items: center; justify-content: space-between; gap: 16px;
+      padding: 16px 22px; border-bottom: 1px solid var(--line);
+      background: rgba(11, 18, 32, 0.9); position: sticky; top: 0; z-index: 2;
+    }
+    .brand { display: flex; align-items: center; gap: 12px; }
+    .brand img { width: 36px; height: 36px; }
+    .brand h1 { margin: 0; font-size: 1.05rem; font-weight: 700; }
+    .brand p { margin: 2px 0 0; color: var(--muted); font-size: 0.78rem; }
+    .meta { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+    .chip {
+      font-size: 0.72rem; padding: 5px 10px; border-radius: 999px;
+      border: 1px solid var(--line); color: var(--muted); background: var(--panel);
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    }
+    .chip.ok { color: #7ee0c8; border-color: #1d6; background: var(--green-dim); }
+    .tabs { display: flex; gap: 6px; padding: 14px 22px 0; }
+    .tab {
+      border: 0; background: transparent; color: var(--muted); cursor: pointer;
+      padding: 10px 14px; border-radius: 10px 10px 0 0; font-weight: 650;
+    }
+    .tab.on { color: var(--text); background: var(--panel); border: 1px solid var(--line); border-bottom-color: var(--panel); }
+    main { padding: 0 22px 32px; }
+    .panel {
+      background: var(--panel); border: 1px solid var(--line); border-radius: 0 16px 16px 16px;
+      padding: 18px; min-height: 70vh;
+    }
+    .row { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 14px; }
+    input, textarea, button.btn {
+      border-radius: 10px; border: 1px solid var(--line); background: #0d1524; color: var(--text);
+      padding: 10px 12px; font: inherit;
+    }
+    input { min-width: 280px; flex: 1; }
+    textarea { width: 100%; min-height: 180px; font-family: ui-monospace, Menlo, monospace; font-size: 0.82rem; }
+    button.btn { cursor: pointer; background: var(--green); color: #042; font-weight: 800; border: 0; }
+    button.ghost { background: transparent; color: var(--text); border: 1px solid var(--line); }
+    .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 10px; margin-bottom: 16px; }
+    .stat { padding: 14px; border: 1px solid var(--line); border-radius: 12px; background: #0d1524; }
+    .stat small { display: block; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; font-size: 0.65rem; }
+    .stat strong { font-size: 1.35rem; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.84rem; }
+    th, td { text-align: left; padding: 10px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
+    th { color: var(--muted); font-size: 0.7rem; letter-spacing: .08em; text-transform: uppercase; }
+    .text { max-width: 42ch; color: #c9d6ea; }
+    .props { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 10px; }
+    .prop { padding: 12px; border: 1px solid var(--line); border-radius: 12px; background: #0d1524; }
+    .prop code { color: #7ee0c8; font-size: 0.78rem; }
+    pre { background: #0d1524; border: 1px solid var(--line); border-radius: 12px; padding: 14px; overflow: auto; font-size: 0.78rem; }
+    .note { color: var(--muted); font-size: 0.82rem; line-height: 1.45; margin: 0 0 14px; }
+    .hidden { display: none; }
+    a { color: #7ee0c8; }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="brand">
+      <img src="/static/designs/d2/logos/weaviate.svg" alt="">
+      <div>
+        <h1>Weaviate console</h1>
+        <p>Self-hosted cluster · Design 2 runbook vectors. OSS Weaviate has no vendor GUI — this talks to the live API.</p>
+      </div>
+    </div>
+    <div class="meta">
+      <span class="chip" id="status">connecting…</span>
+      <span class="chip" id="endpoint">http://localhost:8088</span>
+      <a class="chip" href="/" target="_parent">← Platform UI</a>
+    </div>
+  </header>
+  <div class="tabs">
+    <button class="tab on" data-tab="objects">Objects</button>
+    <button class="tab" data-tab="schema">Collection</button>
+    <button class="tab" data-tab="graphql">GraphQL</button>
+  </div>
+  <main>
+    <section class="panel" id="panel-objects">
+      <p class="note">Class <strong>Runbook</strong> holds chunked SRE procedures. Search uses Weaviate BM25 over <code>text</code> + <code>runbook_id</code> (same index the agent queries with vectors).</p>
+      <div class="stats" id="stats"></div>
+      <div class="row">
+        <input id="q" placeholder="Search runbooks — try redis pool">
+        <button class="btn" id="btn-search">Search</button>
+        <button class="btn ghost" id="btn-all">Load objects</button>
+      </div>
+      <table>
+        <thead><tr><th>runbook</th><th>service</th><th>severity</th><th>chunk</th></tr></thead>
+        <tbody id="rows"><tr><td colspan="4">Loading…</td></tr></tbody>
+      </table>
+    </section>
+    <section class="panel hidden" id="panel-schema">
+      <p class="note">This is the same schema you saw as raw JSON, rendered as a collection. Distance = cosine, vectorizer = none (we bring MiniLM embeddings).</p>
+      <div class="stats" id="schema-stats"></div>
+      <div class="props" id="props"></div>
+    </section>
+    <section class="panel hidden" id="panel-graphql">
+      <p class="note">Live GraphQL against <code>/v1/graphql</code>. Run a Get or Aggregate — this is how clients talk to Weaviate.</p>
+      <textarea id="gql">{
+  Get {
+    Runbook(limit: 8) {
+      runbook_id
+      service
+      severity
+      source
+      text
+    }
+  }
+}</textarea>
+      <div class="row" style="margin-top:10px">
+        <button class="btn" id="btn-gql">Run query</button>
+        <button class="btn ghost" id="btn-gql-count">Count objects</button>
+        <button class="btn ghost" id="btn-gql-bm25">BM25 redis pool</button>
+      </div>
+      <pre id="gql-out">Results appear here.</pre>
+    </section>
+  </main>
+  <script>
+    const API = 'http://localhost:8088';
+    const $ = (id) => document.getElementById(id);
+
+    document.querySelectorAll('.tab').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.tab').forEach((b) => b.classList.toggle('on', b === btn));
+        ['objects', 'schema', 'graphql'].forEach((id) => {
+          $('panel-' + id).classList.toggle('hidden', id !== btn.dataset.tab);
+        });
+      });
+    });
+
+    async function gql(query) {
+      const r = await fetch(API + '/v1/graphql', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query }),
+      });
+      return r.json();
+    }
+
+    function renderRows(items) {
+      const body = $('rows');
+      if (!items.length) {
+        body.innerHTML = '<tr><td colspan="4">No objects. Reindex runbooks from Ingestion if this is empty.</td></tr>';
+        return;
+      }
+      body.innerHTML = items.map((p) => `
+        <tr>
+          <td><code>${p.runbook_id || '—'}</code></td>
+          <td>${p.service || '—'}</td>
+          <td>${p.severity || '—'}</td>
+          <td class="text">${(p.text || '').slice(0, 220)}${(p.text || '').length > 220 ? '…' : ''}</td>
+        </tr>`).join('');
+    }
+
+    async function loadAll() {
+      const r = await fetch(API + '/v1/objects?class=Runbook&limit=50');
+      const data = await r.json();
+      const objs = (data.objects || []).map((o) => o.properties || {});
+      renderRows(objs);
+      $('stats').innerHTML = `
+        <div class="stat"><small>Objects loaded</small><strong>${objs.length}</strong></div>
+        <div class="stat"><small>Total (API)</small><strong>${data.totalResults ?? objs.length}</strong></div>
+        <div class="stat"><small>Class</small><strong>Runbook</strong></div>`;
+    }
+
+    async function search() {
+      const q = $('q').value.trim() || 'redis pool';
+      const data = await gql(`{
+        Get {
+          Runbook(bm25: { query: ${JSON.stringify(q)}, properties: ["text", "runbook_id", "service"] }, limit: 20) {
+            runbook_id service severity text
+            _additional { score }
+          }
+        }
+      }`);
+      const items = data?.data?.Get?.Runbook || [];
+      renderRows(items);
+    }
+
+    async function loadSchema() {
+      const r = await fetch(API + '/v1/schema');
+      const schema = await r.json();
+      const cls = (schema.classes || [])[0];
+      $('status').textContent = cls ? 'connected' : 'no classes';
+      $('status').classList.toggle('ok', Boolean(cls));
+      if (!cls) return;
+      const cfg = cls.vectorIndexConfig || {};
+      $('schema-stats').innerHTML = `
+        <div class="stat"><small>Class</small><strong>${cls.class}</strong></div>
+        <div class="stat"><small>Index</small><strong>${cls.vectorIndexType}</strong></div>
+        <div class="stat"><small>Distance</small><strong>${cfg.distance || '—'}</strong></div>
+        <div class="stat"><small>Vectorizer</small><strong>${cls.vectorizer}</strong></div>`;
+      $('props').innerHTML = (cls.properties || []).map((p) => `
+        <div class="prop"><code>${p.name}</code><div>${(p.dataType || []).join(', ')}</div>
+        <small>${p.indexSearchable ? 'searchable' : 'filter only'}</small></div>`).join('');
+    }
+
+    $('btn-all').addEventListener('click', () => loadAll().catch(showErr));
+    $('btn-search').addEventListener('click', () => search().catch(showErr));
+    $('q').addEventListener('keydown', (e) => { if (e.key === 'Enter') search().catch(showErr); });
+    $('btn-gql').addEventListener('click', async () => {
+      $('gql-out').textContent = JSON.stringify(await gql($('gql').value), null, 2);
+    });
+    $('btn-gql-count').addEventListener('click', () => {
+      $('gql').value = `{ Aggregate { Runbook { meta { count } } } }`;
+      $('btn-gql').click();
+    });
+    $('btn-gql-bm25').addEventListener('click', () => {
+      $('gql').value = `{
+  Get {
+    Runbook(bm25: { query: "redis pool", properties: ["text", "runbook_id"] }, limit: 5) {
+      runbook_id service text
+      _additional { score }
+    }
+  }
+}`;
+      $('btn-gql').click();
+    });
+
+    function showErr(err) {
+      $('status').textContent = 'error';
+      $('rows').innerHTML = `<tr><td colspan="4">${err.message}. Is Weaviate up on :8088?</td></tr>`;
+    }
+
+    Promise.all([loadSchema(), loadAll()]).catch(showErr);
+  </script>
+</body>
+</html>

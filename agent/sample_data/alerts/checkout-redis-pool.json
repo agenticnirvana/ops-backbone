@@ -1,0 +1,6 @@
+{
+  "service": "checkout-service",
+  "severity": "P1",
+  "error_summary": "HTTP 500 spike on /checkout",
+  "log_snippet": "Timeout waiting for connection pool (Redis)"
+}

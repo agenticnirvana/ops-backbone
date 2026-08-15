@@ -1,0 +1,21 @@
+FROM python:3.11-slim
+
+WORKDIR /app
+
+COPY agent/requirements.txt /tmp/agent-req.txt
+RUN pip install --no-cache-dir -r /tmp/agent-req.txt "PyJWT>=2.9.0" "mcp>=1.0.0" "sqlalchemy>=2.0" "psycopg2-binary>=2.9"
+
+COPY agent/ /app/agent/
+COPY platform/ /app/platform/
+
+ENV PYTHONPATH=/app/platform:/app/agent
+ENV CHROMA_PATH=/app/.chroma
+ENV INDEX_MANIFEST_PATH=/app/.chroma/active.json
+
+WORKDIR /app/platform
+EXPOSE 8080
+
+HEALTHCHECK --interval=15s --timeout=5s --start-period=30s --retries=5 \
+  CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:8080/api/health')" || exit 1
+
+CMD ["uvicorn", "gateway.main:app", "--host", "0.0.0.0", "--port", "8080"]

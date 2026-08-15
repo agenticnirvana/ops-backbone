@@ -1,0 +1,56 @@
+{
+  "annotations": { "list": [] },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "id": null,
+  "links": [],
+  "panels": [
+    {
+      "datasource": { "type": "prometheus", "uid": "victoriametrics" },
+      "fieldConfig": { "defaults": { "unit": "percentunit", "decimals": 2 }, "overrides": [] },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
+      "id": 1,
+      "options": { "legend": { "displayMode": "list", "placement": "bottom" }, "tooltip": { "mode": "single" } },
+      "targets": [
+        { "expr": "service_error_rate{service=\"checkout-service\"}", "legendFormat": "checkout error rate", "refId": "A" }
+      ],
+      "title": "Checkout error rate (VictoriaMetrics)",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "victoriametrics" },
+      "fieldConfig": { "defaults": { "unit": "percent", "decimals": 1 }, "overrides": [] },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
+      "id": 2,
+      "targets": [
+        { "expr": "service_cpu_percent{service=\"checkout-service\"}", "legendFormat": "CPU", "refId": "A" },
+        { "expr": "service_p95_latency_ms{service=\"checkout-service\"}", "legendFormat": "P95 latency ms", "refId": "B" }
+      ],
+      "title": "Checkout CPU & P95 (VictoriaMetrics)",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "elasticsearch", "uid": "elasticsearch" },
+      "gridPos": { "h": 10, "w": 24, "x": 0, "y": 8 },
+      "id": 3,
+      "options": { "showLabels": false, "showTime": true, "sortOrder": "Descending", "wrapLogMessage": true },
+      "targets": [
+        { "query": "service:checkout-service", "refId": "A", "metrics": [{ "type": "logs", "id": "1" }] }
+      ],
+      "title": "Checkout logs (Elasticsearch) — prefer Kibana :5601 for the full log UI",
+      "type": "logs"
+    }
+  ],
+  "refresh": "30s",
+  "schemaVersion": 39,
+  "style": "dark",
+  "tags": ["agentops", "checkout", "d2"],
+  "templating": { "list": [] },
+  "time": { "from": "now-6h", "to": "now" },
+  "timepicker": {},
+  "timezone": "browser",
+  "title": "D2 · Checkout Redis Pool",
+  "uid": "design2-checkout-incident",
+  "version": 1
+}

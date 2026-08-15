@@ -1,0 +1,15 @@
+global:
+  resolve_timeout: 5m
+
+route:
+  receiver: agentops-agent
+  group_by: [alertname, service]
+  group_wait: 10s
+  group_interval: 1m
+  repeat_interval: 3h
+
+receivers:
+  - name: agentops-agent
+    webhook_configs:
+      - url: http://alert-receiver:8090/webhook/alertmanager
+        send_resolved: false

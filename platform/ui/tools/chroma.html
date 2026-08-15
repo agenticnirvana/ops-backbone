@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Chroma · Runbook index</title>
+  <link rel="icon" href="/static/designs/d1/logos/chroma.svg">
+  <style>
+    :root { --bg:#1a100c; --panel:#261810; --line:#4a2e22; --text:#fff7ed; --muted:#c4a38a; --accent:#ff5a1f; }
+    * { box-sizing: border-box; }
+    body { margin:0; font-family:Inter,system-ui,sans-serif; background:radial-gradient(1000px 500px at 0% 0%,#3a1d12,var(--bg)); color:var(--text); min-height:100vh; }
+    header { display:flex; justify-content:space-between; gap:16px; padding:16px 22px; border-bottom:1px solid var(--line); position:sticky; top:0; background:rgba(26,16,12,.92); }
+    .brand { display:flex; gap:12px; align-items:center; }
+    .brand img { width:36px; height:36px; }
+    .brand h1 { margin:0; font-size:1.05rem; }
+    .brand p { margin:2px 0 0; color:var(--muted); font-size:.78rem; }
+    .chip { font-size:.72rem; padding:5px 10px; border-radius:999px; border:1px solid var(--line); color:var(--muted); font-family:ui-monospace,Menlo,monospace; }
+    .chip.ok { color:#fdba74; border-color:var(--accent); }
+    .tabs { display:flex; gap:6px; padding:14px 22px 0; }
+    .tab { border:0; background:transparent; color:var(--muted); cursor:pointer; padding:10px 14px; font-weight:650; border-radius:10px 10px 0 0; }
+    .tab.on { color:var(--text); background:var(--panel); border:1px solid var(--line); border-bottom-color:var(--panel); }
+    main { padding:0 22px 32px; }
+    .panel { background:var(--panel); border:1px solid var(--line); border-radius:0 16px 16px; padding:18px; min-height:70vh; }
+    .note { color:var(--muted); font-size:.82rem; line-height:1.45; }
+    .row { display:flex; gap:10px; flex-wrap:wrap; margin:14px 0; }
+    input,button.btn { border-radius:10px; border:1px solid var(--line); background:#1a100c; color:var(--text); padding:10px 12px; font:inherit; }
+    input { flex:1; min-width:260px; }
+    button.btn { cursor:pointer; background:var(--accent); color:#1a100c; font-weight:800; border:0; }
+    .stats { display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:10px; margin:14px 0; }
+    .stat { padding:14px; border:1px solid var(--line); border-radius:12px; background:#1a100c; }
+    .stat small { display:block; color:var(--muted); text-transform:uppercase; letter-spacing:.08em; font-size:.65rem; }
+    .stat strong { font-size:1.25rem; }
+    table { width:100%; border-collapse:collapse; font-size:.84rem; }
+    th,td { text-align:left; padding:10px 8px; border-bottom:1px solid var(--line); vertical-align:top; }
+    th { color:var(--muted); font-size:.7rem; text-transform:uppercase; }
+    .text { max-width:48ch; color:#fed7aa; }
+    .hidden { display:none; }
+    a { color:#fdba74; }
+    pre { background:#1a100c; border:1px solid var(--line); border-radius:12px; padding:14px; overflow:auto; font-size:.78rem; }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="brand">
+      <img src="/static/designs/d1/logos/chroma.svg" alt="">
+      <div>
+        <h1>Chroma console</h1>
+        <p>Chroma OSS is embedded (no vendor GUI). This console reads the live vector index through the platform ingest API.</p>
+      </div>
+    </div>
+    <div>
+      <span class="chip" id="status">connecting…</span>
+      <a class="chip" href="/">← Platform UI</a>
+    </div>
+  </header>
+  <div class="tabs">
+    <button class="tab on" data-tab="objects">Objects</button>
+    <button class="tab" data-tab="search">Semantic search</button>
+  </div>
+  <main>
+    <section class="panel" id="panel-objects">
+      <p class="note">Same chunks the agent retrieves at <code>retrieve_runbook</code>. Search below uses MiniLM + cosine.</p>
+      <div class="stats" id="stats"></div>
+      <table>
+        <thead><tr><th>runbook</th><th>service</th><th>chunks</th><th>preview</th></tr></thead>
+        <tbody id="rows"><tr><td colspan="4">Loading…</td></tr></tbody>
+      </table>
+    </section>
+    <section class="panel hidden" id="panel-search">
+      <div class="row">
+        <input id="q" placeholder="Semantic search — try redis pool" value="redis pool">
+        <button class="btn" id="btn-search">Query</button>
+      </div>
+      <pre id="out">Results appear here.</pre>
+    </section>
+  </main>
+  <script>
+    const $ = (id) => document.getElementById(id);
+    const token = localStorage.getItem('aiops_token');
+
+    document.querySelectorAll('.tab').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.tab').forEach((b) => b.classList.toggle('on', b === btn));
+        ['objects', 'search'].forEach((id) => $('panel-' + id).classList.toggle('hidden', id !== btn.dataset.tab));
+      });
+    });
+
+    async function api(path, opts = {}) {
+      if (!token) throw new Error('Sign in to the platform first (operator@agentops.local).');
+      const r = await fetch(path, {
+        ...opts,
+        headers: { Authorization: 'Bearer ' + token, 'Content-Type': 'application/json', ...(opts.headers || {}) },
+      });
+      if (!r.ok) throw new Error(await r.text());
+      return r.json();
+    }
+
+    async function loadAll() {
+      const data = await api('/api/ingest/index?limit=200');
+      $('status').textContent = 'connected';
+      $('status').classList.add('ok');
+      $('stats').innerHTML = `
+        <div class="stat"><small>Collection</small><strong>${data.collection || '—'}</strong></div>
+        <div class="stat"><small>Vectors</small><strong>${data.total_in_collection ?? data.total_chunks ?? 0}</strong></div>
+        <div class="stat"><small>Runbooks</small><strong>${data.runbook_count ?? 0}</strong></div>
+        <div class="stat"><small>Dims</small><strong>${data.embedding_dims || 384}</strong></div>`;
+      const books = data.runbooks || [];
+      $('rows').innerHTML = books.length
+        ? books.map((b) => `<tr><td><code>${b.runbook_id}</code></td><td>${b.service || '—'}</td><td>${b.chunk_count}</td><td class="text">${((b.chunks && b.chunks[0] && b.chunks[0].text) || '').slice(0, 180)}</td></tr>`).join('')
+        : '<tr><td colspan="4">Index empty — run Ingestion → reindex.</td></tr>';
+    }
+
+    $('btn-search').addEventListener('click', async () => {
+      try {
+        const data = await api('/api/ingest/index/query', {
+          method: 'POST',
+          body: JSON.stringify({ query: $('q').value.trim() || 'redis pool', n_results: 5 }),
+        });
+        $('out').textContent = JSON.stringify(data.results || data, null, 2);
+      } catch (err) {
+        $('out').textContent = err.message;
+      }
+    });
+
+    loadAll().catch((err) => {
+      $('status').textContent = 'error';
+      $('rows').innerHTML = `<tr><td colspan="4">${err.message}</td></tr>`;
+    });
+  </script>
+</body>
+</html>

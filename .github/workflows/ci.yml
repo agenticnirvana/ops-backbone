@@ -1,0 +1,77 @@
+name: ci
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint:
+    name: lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup-course
+        id: course
+      - name: Ruff
+        working-directory: ${{ steps.course.outputs.root }}/agent
+        run: ruff check agent api rag observability evals tests
+      - name: YAML / workflow sanity
+        working-directory: ${{ steps.course.outputs.root }}
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import sys
+          try:
+              import yaml
+          except ImportError:
+              import subprocess
+              subprocess.check_call([sys.executable, "-m", "pip", "install", "pyyaml"])
+              import yaml
+          root = Path(".")
+          bad = []
+          for path in list(root.glob(".github/workflows/*.yml")) + list(root.glob("deploy/github/*.yml")):
+              try:
+                  yaml.safe_load(path.read_text())
+              except Exception as exc:
+                  bad.append(f"{path}: {exc}")
+          if bad:
+              raise SystemExit("\n".join(bad))
+          print("yaml ok")
+          PY
+
+  unit:
+    name: unit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup-course
+        id: course
+      - name: Build RAG index
+        working-directory: ${{ steps.course.outputs.root }}/agent
+        run: python -m rag.build_index
+      - name: Pytest
+        working-directory: ${{ steps.course.outputs.root }}/agent
+        env:
+          MOCK_LLM: "true"
+        run: pytest -q tests
+
+  secret-scan:
+    name: secret-scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Gitleaks
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

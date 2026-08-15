@@ -1,0 +1,9 @@
+# Private backbone account — students should not review this history.
+# Student-facing course repos stay separate and get a later clean squash.
+
+* @agenticnirvana
+/agent/evals/ @agenticnirvana
+/.github/ @agenticnirvana
+/deploy/config/opa/ @agenticnirvana
+/platform/shared/governance.py @agenticnirvana
+/services/governance/ @agenticnirvana

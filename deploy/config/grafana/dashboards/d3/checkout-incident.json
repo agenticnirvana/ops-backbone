@@ -1,0 +1,64 @@
+{
+  "annotations": { "list": [] },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "id": null,
+  "links": [],
+  "panels": [
+    {
+      "type": "text",
+      "gridPos": { "h": 4, "w": 24, "x": 0, "y": 0 },
+      "id": 10,
+      "options": {
+        "mode": "markdown",
+        "content": "**Design 3 — what lives where**\n\n- **Mimir (this dashboard / Explore → Mimir)** = metrics (`service_error_rate`, `service_cpu_percent`). Not logs.\n- **Tempo (Explore → Tempo)** = traces. Search, then filter `resource.agentops.design = d3`. Not logs.\n- **Logs** = OpenSearch Dashboards `http://localhost:5602` → Discover → index `agentops-d3-logs`. Grafana is the wrong place for D3 logs."
+      }
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "mimir" },
+      "fieldConfig": { "defaults": { "unit": "percentunit", "decimals": 2 }, "overrides": [] },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 4 },
+      "id": 1,
+      "options": { "legend": { "displayMode": "list", "placement": "bottom" }, "tooltip": { "mode": "single" } },
+      "targets": [
+        { "expr": "service_error_rate{service=\"checkout-service\"}", "legendFormat": "checkout error rate", "refId": "A" }
+      ],
+      "title": "Checkout error rate (Mimir)",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "mimir" },
+      "fieldConfig": { "defaults": { "unit": "percent", "decimals": 1 }, "overrides": [] },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 4 },
+      "id": 2,
+      "targets": [
+        { "expr": "service_cpu_percent{service=\"checkout-service\"}", "legendFormat": "CPU", "refId": "A" },
+        { "expr": "service_p95_latency_ms{service=\"checkout-service\"}", "legendFormat": "P95 latency ms", "refId": "B" }
+      ],
+      "title": "Checkout CPU & P95 (Mimir)",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "tempo", "uid": "tempo" },
+      "gridPos": { "h": 10, "w": 24, "x": 0, "y": 12 },
+      "id": 4,
+      "targets": [
+        { "query": "{ resource.agentops.design = \"d3\" }", "queryType": "traceql", "refId": "A", "limit": 20 }
+      ],
+      "title": "Agent traces (Tempo) — Design 3 only",
+      "type": "traces"
+    }
+  ],
+  "refresh": "30s",
+  "schemaVersion": 39,
+  "style": "dark",
+  "tags": ["agentops", "checkout", "d3"],
+  "templating": { "list": [] },
+  "time": { "from": "now-6h", "to": "now" },
+  "timepicker": {},
+  "timezone": "browser",
+  "title": "D3 · Mimir metrics + Tempo traces",
+  "uid": "design3-mimir-tempo",
+  "version": 1
+}

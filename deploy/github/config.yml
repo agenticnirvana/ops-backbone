@@ -1,0 +1,40 @@
+# Private backbone under agenticnirvana — not the student-facing course repo.
+github:
+  org: agenticnirvana
+  repo: ops-backbone
+
+environments:
+  staging:
+    protection: true
+    required_reviewers: 1
+    wait_timer_minutes: 0
+    prevent_self_review: true
+  production:
+    protection: true
+    required_reviewers: 2
+    wait_timer_minutes: 5
+    prevent_self_review: true
+    required_reviewers_teams:
+      - agenticnirvana
+
+branch_protection:
+  branch: main
+  required_checks:
+    - ci / lint
+    - ci / unit
+    - ci / secret-scan
+    - eval-gate / golden-set
+  require_codeowner_reviews: true
+  dismiss_stale_reviews: true
+  require_linear_history: true
+  enforce_admins: true
+
+secrets:
+  # Repo or org secrets — leave empty until GitHub is connected
+  - DESIGN1_INGESTION_URL
+  - DESIGN1_INGESTION_TOKEN
+  - GOVERNANCE_WEBHOOK_URL   # http://<host>:8093
+  - GOVERNANCE_WEBHOOK_TOKEN
+
+vars:
+  - GOVERNANCE_REPORT        # set to "true" to always POST eval results

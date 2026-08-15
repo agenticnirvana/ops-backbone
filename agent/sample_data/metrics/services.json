@@ -1,0 +1,26 @@
+{
+  "checkout-service": {
+    "cpu_percent": 91.2,
+    "error_rate_5m": 0.08,
+    "p95_latency_ms": 920,
+    "active_incidents": 1
+  },
+  "auth-service": {
+    "cpu_percent": 45.0,
+    "error_rate_5m": 0.06,
+    "p95_latency_ms": 210,
+    "active_incidents": 1
+  },
+  "payment-api": {
+    "cpu_percent": 93.5,
+    "error_rate_5m": 0.04,
+    "p95_latency_ms": 780,
+    "active_incidents": 0
+  },
+  "order-service": {
+    "cpu_percent": 62.0,
+    "error_rate_5m": 0.03,
+    "p95_latency_ms": 650,
+    "active_incidents": 0
+  }
+}

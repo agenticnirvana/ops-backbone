@@ -1,0 +1,16 @@
+title = "AgentOps course gitleaks"
+
+[allowlist]
+description = "Documented local demo placeholders — not production secrets"
+paths = [
+  '''(^|/)deploy/\.env\.example$''',
+  '''(^|/)deploy/github/''',
+  '''(^|/)\.github/''',
+]
+regexes = [
+  '''pk-lf-design1-local-public''',
+  '''sk-lf-design1-local-secret''',
+  '''design1-local-jwt-secret''',
+  '''YOUR_GITHUB_ORG''',
+  '''YOUR_GITHUB_REPO''',
+]

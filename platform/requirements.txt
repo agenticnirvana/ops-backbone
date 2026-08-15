@@ -1,0 +1,5 @@
+# Platform dependencies
+-r ../agent/requirements.txt
+PyJWT>=2.9.0
+mcp>=1.0.0
+httpx>=0.27.0

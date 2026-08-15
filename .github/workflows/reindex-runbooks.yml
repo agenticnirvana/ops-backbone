@@ -1,0 +1,35 @@
+name: Design 1 runbook reindex
+
+on:
+  push:
+    paths:
+      - "courses/local-open-source/architecture-design-1/agent/rag/runbooks/**"
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: Reindex mode
+        required: true
+        default: incremental
+        type: choice
+        options:
+          - incremental
+          - full
+
+jobs:
+  reindex:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Trigger ingestion API
+        env:
+          INGESTION_URL: ${{ secrets.DESIGN1_INGESTION_URL }}
+          INGESTION_TOKEN: ${{ secrets.DESIGN1_INGESTION_TOKEN }}
+        run: |
+          if [[ -z "${INGESTION_URL}" || -z "${INGESTION_TOKEN}" ]]; then
+            echo "Skipping remote reindex — set DESIGN1_INGESTION_URL and DESIGN1_INGESTION_TOKEN secrets"
+            exit 0
+          fi
+          curl -sf -X POST "${INGESTION_URL}/v1/ingest/reindex" \
+            -H "Authorization: Bearer ${INGESTION_TOKEN}" \
+            -H "Content-Type: application/json" \
+            -d "{\"mode\":\"${{ github.event.inputs.mode || 'incremental' }}\",\"sync_drive\":false}"

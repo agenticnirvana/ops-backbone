@@ -1,0 +1,36 @@
+name: Setup AgentOps course
+description: Detect architecture-design-1 root (monorepo or standalone) and install Python deps
+inputs:
+  python-version:
+    description: Python version
+    required: false
+    default: "3.11"
+outputs:
+  root:
+    description: Course root directory
+    value: ${{ steps.root.outputs.dir }}
+runs:
+  using: composite
+  steps:
+    - name: Detect course root
+      id: root
+      shell: bash
+      run: |
+        if [ -f agent/evals/run_evals.py ]; then
+          echo "dir=." >> "$GITHUB_OUTPUT"
+        elif [ -f courses/local-open-source/architecture-design-1/agent/evals/run_evals.py ]; then
+          echo "dir=courses/local-open-source/architecture-design-1" >> "$GITHUB_OUTPUT"
+        else
+          echo "Could not find architecture-design-1 (agent/evals/run_evals.py)" >&2
+          exit 1
+        fi
+        echo "Course root: $(grep dir= "$GITHUB_OUTPUT" | cut -d= -f2)"
+    - uses: actions/setup-python@v5
+      with:
+        python-version: ${{ inputs.python-version }}
+        cache: pip
+        cache-dependency-path: ${{ steps.root.outputs.dir }}/agent/requirements.txt
+    - name: Install agent dependencies
+      shell: bash
+      working-directory: ${{ steps.root.outputs.dir }}/agent
+      run: pip install -r requirements.txt

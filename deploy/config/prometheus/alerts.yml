@@ -1,0 +1,12 @@
+groups:
+  - name: checkout-service
+    rules:
+      - alert: CheckoutHighErrorRate
+        expr: service_error_rate{service="checkout-service"} > 0.05
+        for: 1m
+        labels:
+          service: checkout-service
+          severity: P1
+        annotations:
+          summary: "HTTP 500 spike on /checkout"
+          description: "Timeout waiting for connection pool (Redis)"

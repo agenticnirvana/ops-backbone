@@ -1,0 +1,69 @@
+name: eval-gate
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      report_to_governance:
+        description: POST the result to the governance service (needs GOVERNANCE_WEBHOOK_URL secret)
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+  checks: write
+
+concurrency:
+  group: eval-gate-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  golden-set:
+    name: golden-set
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup-course
+        id: course
+      - name: Build RAG index
+        working-directory: ${{ steps.course.outputs.root }}/agent
+        run: python -m rag.build_index
+      - name: Golden-set eval gate
+        id: evals
+        working-directory: ${{ steps.course.outputs.root }}/agent
+        env:
+          MOCK_LLM: "true"
+        run: |
+          set -o pipefail
+          python -m evals.run_evals | tee ../eval-report.json
+          python - <<'PY'
+          import json, pathlib, sys
+          report = json.loads(pathlib.Path("../eval-report.json").read_text())
+          passed = bool(report.get("passed"))
+          print(f"eval_gate={'pass' if passed else 'fail'} cases={report.get('cases_passed')}/{report.get('case_count')}")
+          sys.exit(0 if passed else 1)
+          PY
+      - name: Upload eval report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: eval-report
+          path: ${{ steps.course.outputs.root }}/eval-report.json
+      - name: Report to governance service
+        if: always() && (github.event.inputs.report_to_governance == 'true' || vars.GOVERNANCE_REPORT == 'true')
+        env:
+          GOVERNANCE_WEBHOOK_URL: ${{ secrets.GOVERNANCE_WEBHOOK_URL }}
+          GOVERNANCE_WEBHOOK_TOKEN: ${{ secrets.GOVERNANCE_WEBHOOK_TOKEN }}
+        run: |
+          if [[ -z "${GOVERNANCE_WEBHOOK_URL}" ]]; then
+            echo "GOVERNANCE_WEBHOOK_URL not set — skip (placeholder until GitHub is wired)"
+            exit 0
+          fi
+          CONCLUSION="failure"
+          if [[ "${{ steps.evals.outcome }}" == "success" ]]; then CONCLUSION="success"; fi
+          curl -sf -X POST "${GOVERNANCE_WEBHOOK_URL}/v1/pipelines" \
+            -H "Content-Type: application/json" \
+            -H "X-Governance-Token: ${GOVERNANCE_WEBHOOK_TOKEN}" \
+            -d "{\"workflow\":\"eval-gate\",\"check_name\":\"eval-gate / golden-set\",\"conclusion\":\"${CONCLUSION}\",\"triggered_by\":\"github-actions\",\"sha\":\"${GITHUB_SHA}\",\"branch\":\"${GITHUB_REF_NAME}\",\"summary\":\"golden-set ${CONCLUSION}\"}"

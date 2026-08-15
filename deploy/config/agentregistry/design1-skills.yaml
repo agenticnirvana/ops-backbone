@@ -1,0 +1,77 @@
+apiVersion: ar.dev/v1alpha1
+kind: Skill
+metadata:
+  name: checkout-redis-triage
+  namespace: design1
+  tag: latest
+  labels:
+    design1.io/builtin: "true"
+    design1.io/category: "triage"
+  annotations:
+    design1.io/related-mcp-tools: "get_metrics,retrieve_runbooks,query_logs"
+    design1.io/scripts: "check_redis_pool.py"
+    design1.io/skill-path: "checkout-redis-triage"
+    design1.io/use-mcp-instead: "Production incident — call MCP get_metrics and query_logs on real Loki/Prometheus."
+    design1.io/when-to-use: "Teaching capstone pattern; offline checks before calling live MCP metrics."
+spec:
+  title: "Checkout Redis Pool Triage"
+  description: "Heuristic triage for checkout Redis pool exhaustion using sample metrics + runbook mapping."
+---
+apiVersion: ar.dev/v1alpha1
+kind: Skill
+metadata:
+  name: severity-classifier
+  namespace: design1
+  tag: latest
+  labels:
+    design1.io/builtin: "true"
+    design1.io/category: "classification"
+  annotations:
+    design1.io/related-mcp-tools: "query_logs,get_metrics"
+    design1.io/scripts: "classify_severity.py"
+    design1.io/skill-path: "severity-classifier"
+    design1.io/use-mcp-instead: "Ambiguous alerts needing log/metric context from live observability stack."
+    design1.io/when-to-use: "Golden-alert evals, fast pre-filter, CI regression without LLM."
+spec:
+  title: "Severity Classifier"
+  description: "Rule-based P1/P2/P3 mapping from alert text — deterministic eval baseline."
+---
+apiVersion: ar.dev/v1alpha1
+kind: Skill
+metadata:
+  name: runbook-recall-check
+  namespace: design1
+  tag: latest
+  labels:
+    design1.io/builtin: "true"
+    design1.io/category: "evaluation"
+  annotations:
+    design1.io/related-mcp-tools: "retrieve_runbooks"
+    design1.io/scripts: "verify_runbook_id.py"
+    design1.io/skill-path: "runbook-recall-check"
+    design1.io/use-mcp-instead: "Runtime RAG retrieval from Chroma during live triage."
+    design1.io/when-to-use: "MLflow eval gate, RAG regression tests, pre-deploy confidence."
+spec:
+  title: "Runbook Recall Check"
+  description: "Assert retrieved runbook ID matches golden expectations per service."
+---
+apiVersion: ar.dev/v1alpha1
+kind: Skill
+metadata:
+  name: hitl-approval-checklist
+  namespace: design1
+  tag: latest
+  labels:
+    design1.io/builtin: "true"
+    design1.io/category: "guardrails"
+  annotations:
+    design1.io/related-mcp-tools: "create_ticket"
+    design1.io/scripts: ""
+    design1.io/skill-path: "hitl-approval-checklist"
+    design1.io/use-mcp-instead: "Creating tickets or executing remediation — MCP create_ticket after approve."
+    design1.io/when-to-use: "Human-in-the-loop Simulation tab; training new operators."
+spec:
+  title: "HITL Approval Checklist"
+  description: "Operator checklist before approving destructive remediation — procedural knowledge only."
+
+

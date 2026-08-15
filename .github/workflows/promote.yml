@@ -1,0 +1,70 @@
+name: promote
+
+# GitHub Environments enforce required reviewers. Create `staging` and `production`
+# in the repo settings (see deploy/github/config.yml). Org/repo stay placeholders
+# until you share GitHub details.
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: Target environment (required reviewers)
+        type: choice
+        options: [staging, production]
+        default: staging
+      sha:
+        description: Git SHA to promote (empty = this workflow SHA)
+        required: false
+        default: ""
+      reason:
+        description: Why this promotion should ship
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  eval-gate:
+    name: eval-before-promote
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.sha || github.sha }}
+      - uses: ./.github/actions/setup-course
+        id: course
+      - name: Build RAG index
+        working-directory: ${{ steps.course.outputs.root }}/agent
+        run: python -m rag.build_index
+      - name: Golden-set must pass
+        working-directory: ${{ steps.course.outputs.root }}/agent
+        env:
+          MOCK_LLM: "true"
+        run: python -m evals.run_evals
+
+  approve-and-promote:
+    name: ${{ github.event.inputs.environment }}
+    needs: eval-gate
+    runs-on: ubuntu-latest
+    environment: ${{ github.event.inputs.environment }}
+    steps:
+      - name: Record promotion
+        env:
+          GOVERNANCE_WEBHOOK_URL: ${{ secrets.GOVERNANCE_WEBHOOK_URL }}
+          GOVERNANCE_WEBHOOK_TOKEN: ${{ secrets.GOVERNANCE_WEBHOOK_TOKEN }}
+          TARGET_ENV: ${{ github.event.inputs.environment }}
+          REASON: ${{ github.event.inputs.reason }}
+          SHA: ${{ github.event.inputs.sha || github.sha }}
+        run: |
+          echo "Promoting ${SHA} → ${TARGET_ENV}"
+          echo "Reason: ${REASON}"
+          echo "Reviewers already approved this GitHub Environment job."
+          if [[ -z "${GOVERNANCE_WEBHOOK_URL}" ]]; then
+            echo "GOVERNANCE_WEBHOOK_URL not set — local/placeholder mode (YOUR_GITHUB_ORG/YOUR_GITHUB_REPO)"
+            exit 0
+          fi
+          curl -sf -X POST "${GOVERNANCE_WEBHOOK_URL}/v1/pipelines" \
+            -H "Content-Type: application/json" \
+            -H "X-Governance-Token: ${GOVERNANCE_WEBHOOK_TOKEN}" \
+            -d "{\"workflow\":\"promote\",\"check_name\":\"promote / ${TARGET_ENV}\",\"conclusion\":\"success\",\"triggered_by\":\"${GITHUB_ACTOR}\",\"sha\":\"${SHA}\",\"branch\":\"${GITHUB_REF_NAME}\",\"summary\":\"${REASON}\"}"

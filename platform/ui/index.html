@@ -1,0 +1,1949 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <title>Production AgentOps Platform</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@500;700&family=Fraunces:opsz,wght@9..144,500;700&family=Literata:opsz,wght@7..72,400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/styles.css?v=design1-6.20-governance">
+  <script>
+    (function () {
+      var t = localStorage.getItem('agentops-theme');
+      if (t === 'dark' || t === 'light') {
+        document.documentElement.setAttribute('data-theme', t);
+      }
+    })();
+  </script>
+</head>
+<body class="theme-premium">
+<div class="theme-switch-wrap" id="theme-switch-wrap">
+  <div class="theme-switch" role="group" aria-label="Color theme">
+    <button type="button" class="theme-switch-btn" data-theme-value="light" aria-pressed="true" title="Light theme">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+      <span class="sr-only">Light</span>
+    </button>
+    <button type="button" class="theme-switch-btn" data-theme-value="dark" aria-pressed="false" title="Dark theme">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+      <span class="sr-only">Dark</span>
+    </button>
+  </div>
+</div>
+<div class="ambient" aria-hidden="true">
+  <div class="orb orb-a"></div>
+  <div class="orb orb-b"></div>
+  <div class="orb orb-c"></div>
+  <div class="grid-overlay"></div>
+</div>
+
+<div id="login-screen">
+  <div class="login-card glossy-card">
+    <div class="window-chrome"></div>
+    <div class="login-brand">
+      <div class="brand-mark" id="login-logo"></div>
+      <div>
+        <h1>AgentOps</h1>
+        <p class="tagline">Production SRE console</p>
+      </div>
+    </div>
+    <p class="login-desc">Ingestion · observability · agent pipeline · HITL · tickets</p>
+    <form id="login-form">
+      <label>Email</label>
+      <input id="email" type="email" value="operator@agentops.local" required>
+      <label>Password</label>
+      <input id="password" type="password" value="operator123" required>
+      <button type="submit" class="btn-primary btn-glossy"><span class="btn-shine"></span>Sign in</button>
+      <p id="login-error" class="error-text"></p>
+    </form>
+    <p class="demo-users">Demo: operator@agentops.local / operator123 · admin@agentops.local / admin123 · viewer@agentops.local / viewer123</p>
+  </div>
+</div>
+
+<div id="app-screen" class="hidden">
+  <aside class="shell-sidebar glossy-panel dock-sidebar">
+    <div class="brand">
+      <span class="brand-icon mac-icon mac-icon-md mac-blue" id="sidebar-logo"></span>
+      <div>
+        <span class="brand-name">AgentOps</span>
+        <span class="brand-sub" id="sidebar-design-sub">Production console</span>
+      </div>
+    </div>
+
+    <nav class="nav-section nav-dock">
+      <div class="nav-label">Workspace</div>
+      <button class="nav-item" data-section="operations" data-testid="nav-operations"><span class="nav-label-text">Operations</span></button>
+      <button class="nav-item" data-section="mcp" data-testid="nav-mcp"><span class="nav-label-text">MCP &amp; Skills</span></button>
+      <button class="nav-item" data-section="simulation" data-testid="nav-simulation"><span class="nav-label-text">Simulation</span><span class="nav-badge hidden" id="cr-pending-badge">1</span></button>
+      <button class="nav-item" data-section="guardrails" data-testid="nav-guardrails"><span class="nav-label-text">Guardrails</span></button>
+      <button class="nav-item" data-section="ingestion" data-testid="nav-ingestion"><span class="nav-label-text">Ingestion</span></button>
+      <button class="nav-item" data-section="learning" data-testid="nav-learning"><span class="nav-label-text">Learning</span></button>
+      <button class="nav-item" data-section="observability" data-testid="nav-observability"><span class="nav-label-text">Observability</span></button>
+      <button class="nav-item" data-section="evaluation" data-testid="nav-evaluation"><span class="nav-label-text">Evaluation</span></button>
+      <button class="nav-item" data-section="governance" data-testid="nav-governance"><span class="nav-label-text">Governance</span></button>
+      <button class="nav-item" data-section="actions" data-testid="nav-actions"><span class="nav-label-text">Actions</span></button>
+      <button class="nav-item hidden" data-section="admin" id="nav-admin" data-testid="nav-admin"><span class="nav-label-text">Admin</span></button>
+    </nav>
+
+    <nav class="nav-section">
+      <div class="nav-label">Open source stack</div>
+      <p class="nav-stack-hint">Open each tool UI in a new tab</p>
+      <div class="tools-grid" id="oss-tools-grid"></div>
+    </nav>
+
+    <div class="sidebar-footer">
+      <span class="env-pill pulse-dot">Live · Production</span>
+      <div class="oss-logo-strip" id="oss-logo-strip"></div>
+      <span class="ui-version">UI v3.4 · premium</span>
+    </div>
+  </aside>
+
+  <div class="shell-main">
+    <header class="global-header glass-bar">
+      <div class="global-brand">
+        <span class="brand-icon mac-icon mac-icon-sm mac-blue" id="header-logo"></span>
+        <div>
+          <span class="brand-name">AgentOps Console</span>
+          <span class="brand-sub" id="header-design-sub">Production · v3.4</span>
+        </div>
+      </div>
+      <div class="design-switch" id="design-switch" role="group" aria-label="Architecture design">
+        <button type="button" class="design-switch-btn" data-design="d1" data-testid="design-d1">D1</button>
+        <button type="button" class="design-switch-btn" data-design="d2" data-testid="design-d2">D2</button>
+        <button type="button" class="design-switch-btn" data-design="d3" data-testid="design-d3">D3</button>
+      </div>
+      <div class="search-shell" id="search-shell">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input type="search" id="global-search" placeholder="Search pipelines, agents, alerts…" autocomplete="off">
+        <kbd class="search-kbd">⌘K</kbd>
+      </div>
+      <div class="global-actions">
+        <div class="notif-wrap">
+          <button type="button" class="icon-btn" id="notif-btn" aria-label="Notifications" aria-expanded="false" aria-controls="notif-panel">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+            <span class="notif-dot hidden" id="notif-dot"></span>
+          </button>
+          <div id="notif-panel" class="notif-panel hidden" role="dialog" aria-label="Notifications">
+            <div class="notif-panel-head">
+              <div>
+                <strong>Notifications</strong>
+                <span class="muted notif-unread-label" id="notif-unread-count"></span>
+              </div>
+              <button type="button" class="btn-ghost btn-sm" id="notif-mark-read">Mark all read</button>
+            </div>
+            <ul class="notif-list" id="notif-list"></ul>
+            <p class="notif-empty muted" id="notif-empty">No notifications yet — pipeline and HITL events appear here.</p>
+          </div>
+        </div>
+        <div class="user-menu-wrap">
+          <button type="button" class="user-chip" id="user-menu-btn" aria-expanded="false" aria-controls="user-menu-panel" aria-haspopup="true">
+            <span class="topbar-avatar" id="topbar-avatar">OP</span>
+            <div><strong id="user-badge">Operator</strong><small id="user-role">Operator</small></div>
+            <svg class="user-menu-chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
+          </button>
+          <div id="user-menu-panel" class="user-menu-panel hidden" role="menu" aria-label="Account menu">
+            <div class="user-menu-head">
+              <span class="topbar-avatar user-menu-avatar" id="user-menu-avatar">OP</span>
+              <div>
+                <strong id="user-menu-name">Operator</strong>
+                <small id="user-menu-email">operator@agentops.local</small>
+                <span class="role-pill" id="user-menu-role-pill">Operator</span>
+              </div>
+            </div>
+            <button type="button" class="user-menu-item" id="user-menu-profile" role="menuitem">Profile settings</button>
+            <button type="button" class="user-menu-item hidden" id="user-menu-admin" role="menuitem">Admin panel</button>
+            <div class="user-menu-divider"></div>
+            <button type="button" class="user-menu-item user-menu-danger" id="logout-btn" role="menuitem">Sign out</button>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <div class="page-head">
+      <p class="breadcrumb" id="breadcrumb">Platform › Operations</p>
+      <h1 id="page-title">Operations</h1>
+      <p id="page-subtitle">Simulate production alerts · LangGraph agent triage</p>
+    </div>
+    <div id="design-banner" class="design-banner" hidden></div>
+
+    <div class="quick-stats" id="quick-stats">
+      <div class="stat-card hover-lift" data-stat="pipelines" style="--stat-i:0">
+        <div class="stat-card-head"><span class="stat-card-label">Active Pipelines</span><span class="stat-trend" id="trend-pipelines">—</span></div>
+        <div class="stat-card-value" id="stat-pipelines"><span class="stat-num">00</span></div>
+        <svg class="stat-sparkline" viewBox="0 0 120 36"><polyline class="stat-spark-draw" stroke="#6366f1" points="0,28 20,24 40,26 60,18 80,14 100,10 120,8"/></svg>
+      </div>
+      <div class="stat-card hover-lift" data-stat="alerts" style="--stat-i:1">
+        <div class="stat-card-head"><span class="stat-card-label">P1 Alerts</span><span class="stat-trend" id="trend-alerts">—</span></div>
+        <div class="stat-card-value" id="stat-alerts"><span class="stat-num">00</span></div>
+        <svg class="stat-sparkline" viewBox="0 0 120 36"><polyline class="stat-spark-draw" stroke="#ef4444" points="0,30 30,28 60,22 90,12 120,8"/></svg>
+      </div>
+      <div class="stat-card hover-lift" data-stat="agents" style="--stat-i:2">
+        <div class="stat-card-head"><span class="stat-card-label">Agents Online</span><span class="stat-trend" id="trend-agents">—</span></div>
+        <div class="stat-card-value" id="stat-agents"><span class="stat-num">0</span></div>
+        <svg class="stat-sparkline" viewBox="0 0 120 36"><polyline class="stat-spark-draw" stroke="#22c55e" points="0,32 25,28 50,24 75,20 100,16 120,14"/></svg>
+      </div>
+      <div class="stat-card hover-lift" data-stat="success" style="--stat-i:3">
+        <div class="stat-card-head"><span class="stat-card-label">Success Rate</span><span class="stat-trend" id="trend-success">—</span></div>
+        <div class="stat-card-value" id="stat-success"><span class="stat-num">—</span></div>
+        <svg class="stat-sparkline" viewBox="0 0 120 36"><polyline class="stat-spark-draw" stroke="#3b82f6" points="0,26 30,24 60,20 90,16 120,12"/></svg>
+      </div>
+      <div class="stat-card hover-lift" data-stat="mttr" style="--stat-i:4">
+        <div class="stat-card-head"><span class="stat-card-label">MTTR</span><span class="stat-trend" id="trend-mttr">—</span></div>
+        <div class="stat-card-value" id="stat-mttr"><span class="stat-num">—</span></div>
+        <svg class="stat-sparkline" viewBox="0 0 120 36"><polyline class="stat-spark-draw" stroke="#f59e0b" points="0,10 30,14 60,18 90,22 120,26"/></svg>
+      </div>
+    </div>
+
+    <div class="workspace-layout">
+      <div class="workspace-main">
+    <div class="workspace">
+      <div id="section-learning-tip" class="section-learning-tip hidden" aria-live="polite"></div>
+      <div class="tabs-shell">
+        <nav class="workspace-tabs glossy-tabs" id="workspace-tabs" aria-label="Section tabs"></nav>
+        <div class="tab-indicator" id="tab-indicator"></div>
+      </div>
+      <div class="workspace-body">
+
+        <!-- OPERATIONS -->
+        <section id="sec-operations" class="section-panel">
+          <div id="tab-ops-incident" class="tab-panel">
+            <div class="card glossy-card">
+              <div class="card-shine"></div>
+              <div class="card-header">
+                <div class="card-title-row">
+                  <div class="card-icon-wrap"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/></svg></div>
+                  <div>
+                    <h2>Incident Details</h2>
+                    <p class="muted" data-arch-copy="Simulate a {metrics}/{logs} alert — the agent retrieves the matching runbook from {vector}">Simulate a Prometheus/Loki alert — the agent retrieves the matching runbook from Chroma</p>
+                  </div>
+                </div>
+                <div class="header-badges">
+                  <span class="badge p1 glow-badge" id="severity-badge">P1 · SEVERE</span>
+                  <span class="badge muted" id="incident-id">INC-pending</span>
+                </div>
+              </div>
+              <form id="alert-form" class="form-grid">
+                <div><label>Scenario</label><select id="scenario"></select></div>
+                <div><label>Service</label><select id="service"></select></div>
+                <div>
+                  <label>Severity</label>
+                  <select id="severity">
+                    <option value="P1">P1 Critical</option>
+                    <option value="P2">P2 Major</option>
+                    <option value="P3">P3 Minor</option>
+                  </select>
+                </div>
+                <div class="span-2"><label>Error / Symptoms</label><input id="error_summary" value="HTTP 500 spike on /checkout"></div>
+                <div class="span-2">
+                  <label>Log snippet</label>
+                  <pre class="log-snippet" id="log_snippet" contenteditable="true">2025-05-20T10:15:47Z ERROR checkout-service QueryTimeoutException: Timeout waiting for connection pool (Redis)
+2025-05-20T10:15:48Z WARN  checkout-service retry attempt 3/5 for /checkout
+2025-05-20T10:15:49Z ERROR checkout-service HTTP 500 /checkout upstream timeout</pre>
+                </div>
+                <div class="span-2 form-actions">
+                  <button type="submit" class="btn-primary btn-glossy btn-interactive" id="run-pipeline-btn"><span class="btn-shine"></span><span class="btn-label">Run Pipeline</span></button>
+                  <label class="mode-select-wrap">
+                    <span class="mode-select-label">Agent mode</span>
+                    <select id="agent-mode-select" aria-label="Agent execution mode">
+                      <option value="standalone">Standalone orchestrator</option>
+                      <option value="multi">Multi-agent (supervisor + workers)</option>
+                      <option value="mcp">MCP tools (hosted HTTP)</option>
+                    </select>
+                  </label>
+                  <span class="mode-tag">Mode: <strong id="active-mode">standalone</strong></span>
+                </div>
+              </form>
+            </div>
+
+            <div class="scenario-dashboard card glossy-card hover-lift" id="scenario-dashboard">
+              <div class="scenario-dashboard-head">
+                <div>
+                  <h3 id="sc-title">Scenario overview</h3>
+                  <p class="muted" id="sc-summary">Select a scenario to preview impact, plan, and linked runbook.</p>
+                </div>
+                <div class="scenario-badges">
+                  <span class="badge muted" id="sc-runbook-badge">—</span>
+                  <span class="badge p1" id="sc-severity-badge">—</span>
+                </div>
+              </div>
+              <div class="scenario-dashboard-grid">
+                <article class="scenario-panel">
+                  <h4>Impacted resources</h4>
+                  <dl class="meta-list compact scenario-impact-dl">
+                    <div><dt>Service</dt><dd id="sc-service">—</dd></div>
+                    <div><dt>Dependency</dt><dd id="sc-dependency">—</dd></div>
+                    <div><dt>Blast radius</dt><dd id="sc-blast">—</dd></div>
+                  </dl>
+                </article>
+                <article class="scenario-panel">
+                  <h4>Proposed plan</h4>
+                  <ul class="proposed-list" id="sc-plan"></ul>
+                  <p class="muted scenario-rationale" id="sc-rationale"></p>
+                </article>
+                <article class="scenario-panel scenario-panel-wide">
+                  <h4>Runbook · <code id="sc-runbook-file">—</code></h4>
+                  <div class="runbook-tags" id="sc-runbook-tags"></div>
+                  <ul class="runbook-sections inline" id="sc-runbook-sections"></ul>
+                </article>
+              </div>
+            </div>
+            <div id="hitl-panel" class="card hitl-card glossy-card hidden">
+              <div class="hitl-header">
+                <div class="hitl-icon-wrap"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/></svg></div>
+                <div>
+                  <strong>Human approval required</strong>
+                  <p id="hitl-text"></p>
+                </div>
+              </div>
+              <button type="button" class="btn-primary btn-glossy" id="open-automation-btn"><span class="btn-shine"></span>Go to Simulation → HITL Review</button>
+            </div>
+          </div>
+
+          <div id="tab-ops-pipeline" class="tab-panel hidden">
+            <div class="card glossy-card hover-lift ops-pipeline-card" id="ops-pipeline-card">
+              <div class="card-shine"></div>
+              <div class="ops-pipeline-ambient" aria-hidden="true"></div>
+              <div class="card-header">
+                <div class="card-title-row">
+                  <div class="card-icon-wrap accent ops-pipeline-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg></div>
+                  <div>
+                    <h2>Pipeline Flow</h2>
+                    <p class="muted" id="pipeline-status-text">Waiting to run</p>
+                  </div>
+                </div>
+                <div class="pipeline-meta">
+                  <span class="running-pill hidden" id="pipeline-running-pill"><span class="pulse-ring"></span> Live</span>
+                  <span class="timer-display" id="pipeline-timer">00:00:00</span>
+                  <a id="link-trace" class="btn-outline" target="_blank" rel="noopener">View Agent Trace</a>
+                </div>
+              </div>
+              <div class="pipeline-flow" id="pipeline-flow">
+                <div class="pipeline-flow-track">
+                  <div class="pipeline-flow-progress" id="pipeline-flow-progress"></div>
+                  <div class="pipeline-flow-shimmer"></div>
+                </div>
+                <div class="pipeline-flow-particles" aria-hidden="true">
+                  <span class="pipeline-flow-particle p1" id="pipeline-flow-particle"></span>
+                  <span class="pipeline-flow-particle p2"></span>
+                  <span class="pipeline-flow-particle p3"></span>
+                </div>
+              </div>
+              <div id="orchestration-theater" class="orchestration-theater hidden" aria-live="polite">
+                <div class="orch-head">
+                  <div>
+                    <strong>Supervisor hierarchy</strong>
+                    <p class="muted" id="orch-status">Orchestrator delegates down the worker tree</p>
+                  </div>
+                  <span class="pill open" id="orch-route-pill">route: —</span>
+                </div>
+                <div class="orch-tree-wrap" id="orch-tree"></div>
+                <ol class="orch-delegations" id="orch-delegations"></ol>
+              </div>
+              <div id="mcp-theater" class="mcp-theater hidden" aria-live="polite">
+                <div class="orch-head">
+                  <div>
+                    <strong>MCP tool calls</strong>
+                    <p class="muted" id="mcp-theater-status">Agent invokes hosted MCP server over HTTP Basic Auth</p>
+                  </div>
+                  <span class="pill open" id="mcp-server-pill">mcp-server:8081</span>
+                </div>
+                <div class="mcp-call-list" id="mcp-call-list"></div>
+              </div>
+              <div class="pipeline-steps-wrap">
+                <div class="pipeline-steps-connector" aria-hidden="true"><div class="pipeline-steps-beam"></div></div>
+                <div class="pipeline-steps" id="pipeline-steps"></div>
+              </div>
+              <div class="progress-bar ops-progress-bar"><div id="progress-fill"></div></div>
+            </div>
+          </div>
+
+          <div id="tab-ops-multi" class="tab-panel hidden">
+            <div class="card glossy-card">
+              <div class="card-header">
+                <div>
+                  <h2>Multi-agent hierarchy</h2>
+                  <p class="muted" id="orch-status-full">Supervisor delegates down a specialist worker chain — LangGraph multi-agent topology</p>
+                </div>
+                <span class="pill open" id="orch-route-full">route: —</span>
+              </div>
+              <div class="orch-tree-panel">
+                <div class="orch-tree-wrap orch-tree-lg" id="orch-tree-full"></div>
+                <aside class="orch-delegation-panel">
+                  <h4>Delegation log</h4>
+                  <ol class="orch-delegations orch-delegations-full" id="orch-delegations-full"></ol>
+                </aside>
+              </div>
+            </div>
+          </div>
+
+          <div id="tab-ops-mcp" class="tab-panel hidden">
+            <div class="content-grid mcp-tab-grid">
+              <div class="card glossy-card span-2">
+                <div class="card-header">
+                  <div>
+                    <h2>MCP server architecture</h2>
+                    <p class="muted">LangGraph agent → HTTP Basic Auth → hosted FastAPI tool server → OSS backends</p>
+                  </div>
+                  <span class="pill open" id="mcp-tab-host-pill">mcp-server:8081</span>
+                </div>
+                <div class="orch-tree-wrap flow-tree-mcp-wrap" id="mcp-arch-tree"></div>
+              </div>
+              <div class="card glossy-card">
+                <div class="card-header">
+                  <h3>Runtime config</h3>
+                  <span class="pill warn" id="mcp-health-pill">—</span>
+                </div>
+                <dl class="meta-list compact">
+                  <div><dt>HTTP URL</dt><dd><code id="mcp-tab-url">—</code></dd></div>
+                  <div><dt>Auth</dt><dd id="mcp-tab-auth">Basic</dd></div>
+                  <div><dt>Transport</dt><dd id="mcp-tab-transport">—</dd></div>
+                </dl>
+              </div>
+              <div class="card glossy-card mcp-catalog-card">
+                <div class="card-header"><h3>Tool catalog</h3></div>
+                <div class="table-scroll">
+                  <table class="data-table compact-table mcp-catalog-table">
+                    <thead><tr><th>Tool</th><th>Description</th><th>Backend</th><th>Endpoint</th></tr></thead>
+                    <tbody id="mcp-tools-body"></tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+            <div class="card glossy-card">
+              <div class="card-header">
+                <h3>Last run — MCP tool invocations</h3>
+                <button type="button" class="btn-ghost btn-sm" id="mcp-tab-refresh">Refresh</button>
+              </div>
+              <div class="mcp-call-list mcp-tab-calls" id="mcp-tab-calls"></div>
+            </div>
+          </div>
+
+          <div id="tab-ops-response" class="tab-panel hidden">
+            <div class="card glossy-card" id="result-card">
+              <div class="card-header">
+                <h2>Agent response</h2>
+                <button class="btn-ghost" id="copy-result">Copy JSON</button>
+              </div>
+              <pre id="result" class="result-box">Run the capstone from the Incident tab.</pre>
+            </div>
+          </div>
+        </section>
+
+        <section id="sec-mcp" class="section-panel hidden">
+          <div id="tab-mcp-playground" class="tab-panel">
+            <div class="mcp-playground-layout card glossy-card">
+              <aside class="mcp-server-rail">
+                <div class="mcp-server-rail-head">
+                  <strong>MCP Servers</strong>
+                  <button type="button" class="btn-ghost btn-sm" id="mcp-add-server-btn" title="Add custom server">+ Add</button>
+                </div>
+                <div class="mcp-server-rail-list" id="mcp-server-rail-list"></div>
+                <p class="muted mcp-rail-hint">Connect with Basic Auth, then list and invoke tools like MCP Inspector.</p>
+              </aside>
+              <div class="mcp-inspector-main">
+                <div class="mcp-inspector-head">
+                  <div>
+                    <h2 id="mcp-inspector-title">MCP Inspector</h2>
+                    <p class="muted" id="mcp-inspector-sub">Select a server and authenticate</p>
+                  </div>
+                </div>
+                <div id="mcp-connect-panel" class="mcp-connect-panel">
+                  <h3>Connect</h3>
+                  <div class="mcp-connect-grid">
+                    <label>Server URL<input id="mcp-connect-url" type="url" placeholder="http://mcp-server:8081"></label>
+                    <label>Username<input id="mcp-connect-user" autocomplete="username" value="mcp"></label>
+                    <label>Password<input id="mcp-connect-pass" type="password" autocomplete="current-password" placeholder="••••••••"></label>
+                  </div>
+                  <div class="mcp-connect-actions">
+                    <button type="button" class="btn-primary btn-glossy" id="mcp-connect-btn"><span class="btn-shine"></span>Connect &amp; list tools</button>
+                    <span class="muted" id="mcp-connect-status"></span>
+                  </div>
+                </div>
+                <div id="mcp-tools-panel" class="mcp-tools-panel hidden">
+                  <div class="mcp-inspector-split">
+                    <div class="mcp-tools-col">
+                      <h4>Tools</h4>
+                      <div class="mcp-tools-list" id="mcp-tools-list"></div>
+                    </div>
+                    <div class="mcp-runner-col">
+                      <div id="mcp-tool-runner" class="mcp-tool-runner"></div>
+                    </div>
+                  </div>
+                  <details class="mcp-health-details">
+                    <summary>Health response</summary>
+                    <pre id="mcp-health-json" class="mcp-json-response">—</pre>
+                  </details>
+                </div>
+                <aside class="mcp-history-col">
+                  <h4>Recent invocations</h4>
+                  <ul class="mcp-invoke-history" id="mcp-invoke-history"></ul>
+                </aside>
+              </div>
+            </div>
+          </div>
+          <div id="tab-mcp-skills" class="tab-panel hidden">
+            <div class="skills-layout card glossy-card">
+              <aside class="skills-rail">
+                <div class="skills-rail-head">
+                  <strong>Skills (agentregistry)</strong>
+                  <a href="http://localhost:12121" target="_blank" rel="noopener" class="btn-ghost btn-sm">Open UI</a>
+                </div>
+                <div class="skills-rail-list" id="skills-rail-list"></div>
+                <p class="muted skills-rail-hint">SKILL.md + demo scripts — knowledge packages, not live MCP tools.</p>
+              </aside>
+              <div class="skills-main">
+                <div id="skills-detail-empty" class="skills-empty muted">
+                  <h3>Select a skill</h3>
+                  <p>Browse procedural knowledge stored in agentregistry. Run bundled scripts for eval demos.</p>
+                </div>
+                <div id="skills-detail-panel" class="skills-detail hidden">
+                  <div class="skills-detail-head">
+                    <div>
+                      <h2 id="skills-detail-title">—</h2>
+                      <p class="muted" id="skills-detail-meta">—</p>
+                    </div>
+                    <span class="pill open" id="skills-detail-category">—</span>
+                  </div>
+                  <div class="skills-compare-strip">
+                    <div><strong>When to use skill</strong><p id="skills-when-to-use" class="muted">—</p></div>
+                    <div><strong>Use MCP instead</strong><p id="skills-use-mcp-instead" class="muted">—</p></div>
+                  </div>
+                  <div class="skills-related-mcp">
+                    <strong>Related MCP tools</strong>
+                    <div id="skills-related-mcp-tools" class="skills-mcp-pills"></div>
+                  </div>
+                  <details class="skills-md-details" open>
+                    <summary>SKILL.md</summary>
+                    <pre id="skills-md-body" class="skills-md-pre">—</pre>
+                  </details>
+                  <div id="skills-runner-panel" class="skills-runner hidden">
+                    <h4>Run demo script</h4>
+                    <div class="skills-runner-grid">
+                      <label>Script<select id="skills-run-script"></select></label>
+                      <label>Params (space-separated)<input id="skills-run-params" placeholder="checkout-service"></label>
+                    </div>
+                    <button type="button" class="btn-primary btn-glossy btn-sm" id="skills-run-btn"><span class="btn-shine"></span>Run script</button>
+                    <pre id="skills-run-output" class="skills-run-output">—</pre>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div id="tab-mcp-vs-skills" class="tab-panel hidden">
+            <div id="mcp-vs-skills-body" class="learn-body"></div>
+          </div>
+        </section>
+
+        <!-- SIMULATION (HITL gate for simulated alerts) -->
+        <section id="sec-simulation" class="section-panel hidden">
+          <div id="tab-auto-change" class="tab-panel">
+            <div class="approval-banner glossy-banner" id="automation-banner">
+              <div class="approval-icon-wrap"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><polyline points="16 11 18 13 22 9"/></svg></div>
+              <div class="approval-body">
+                <strong>Human approval required (simulated HITL gate)</strong>
+                <p id="cr-recommendation">Run a simulated alert from Operations, or wait for a Slack HITL webhook.</p>
+              </div>
+              <span class="badge opa-checking glow-badge" id="opa-policy-badge" data-arch-copy="{policy}: evaluating…">OPA: evaluating…</span>
+              <label class="hitl-comment-field full">
+                <span>Reason / comment</span>
+                <textarea id="hitl-decision-comment" rows="2" placeholder="Why approve or reject? (optional — auto-filled if blank)"></textarea>
+              </label>
+              <div class="approval-actions">
+                <button type="button" class="btn-danger btn-interactive" id="opspilot-deny">Reject</button>
+                <span class="opa-blocked-msg hidden" id="opspilot-blocked-msg" data-arch-copy="Blocked by {policy} — adjust severity or policy">Blocked by OPA — adjust severity or policy</span>
+                <button type="button" class="btn-outline hidden" id="opspilot-view-opa">Review in Guardrails</button>
+                <button type="button" class="btn-success btn-glossy btn-interactive hidden" id="opspilot-approve"><span class="btn-shine"></span>Approve</button>
+              </div>
+            </div>
+            <div class="content-grid">
+              <div class="change-run-main">
+                <div class="meta-card glossy-card">
+                  <h4>Simulated change run · <span id="cr-id">#CR-0000</span></h4>
+                  <dl class="meta-list">
+                    <div><dt>ID</dt><dd id="cr-meta-id">CR-0000</dd></div>
+                    <div><dt>Status</dt><dd><span class="badge warn" id="cr-status-badge">Awaiting approval</span></dd></div>
+                    <div><dt>Service</dt><dd id="cr-service">—</dd></div>
+                    <div><dt>Environment</dt><dd><span class="env-dot">● Production</span></dd></div>
+                    <div><dt>Triggered by</dt><dd id="cr-triggered">—</dd></div>
+                    <div><dt>Created</dt><dd id="cr-created">—</dd></div>
+                    <div><dt>Priority</dt><dd class="priority-p1" id="cr-priority">P1</dd></div>
+                  </dl>
+                </div>
+                <div class="change-run-detail-grid">
+                  <div class="card glossy-card">
+                    <h3>Impacted resources</h3>
+                    <dl class="meta-list compact">
+                      <div><dt>Service</dt><dd id="cr-impacted-service">—</dd></div>
+                      <div><dt>Dependency</dt><dd id="cr-dependency">—</dd></div>
+                      <div><dt>Blast radius</dt><dd id="cr-blast-radius">—</dd></div>
+                    </dl>
+                  </div>
+                  <div class="card glossy-card">
+                    <h3>Proposed plan</h3>
+                    <ul id="cr-changes" class="proposed-list"></ul>
+                    <p class="muted" style="margin-top:12px" id="cr-rationale">—</p>
+                  </div>
+                </div>
+              </div>
+              <aside class="runbook-panel glossy-card">
+                <h4>Runbook</h4>
+                <a class="runbook-link" id="cr-runbook-file">—</a>
+                <ul class="runbook-sections" id="cr-runbook-sections"></ul>
+                <div class="runbook-tags" id="cr-runbook-tags"></div>
+              </aside>
+            </div>
+          </div>
+          <div id="tab-auto-opa" class="tab-panel hidden">
+            <div class="card glossy-card opa-panel">
+              <div class="card-header">
+                <div>
+                  <h3 data-arch-copy="{policy} policy gate">OPA policy gate</h3>
+                  <p class="muted" data-arch-copy="Live policy evaluation against {policy} — same check the agent runs on approve.">Live Rego evaluation against the running OPA container — same check the agent runs on approve.</p>
+                </div>
+                <a class="btn-outline" id="link-opa-console" target="_blank" rel="noopener">Open OPA :8181</a>
+                <button type="button" class="btn-ghost" id="link-guardrails-console">Open Guardrails console</button>
+              </div>
+              <div class="opa-flow-anim" id="opa-flow-anim">
+                <div class="opa-flow-step" data-opa-step="recommend">
+                  <span class="opa-flow-icon">📋</span>
+                  <strong>Recommendation</strong>
+                  <span class="opa-flow-sub" id="opa-flow-rec">—</span>
+                </div>
+                <div class="opa-flow-bridge"><span class="opa-flow-beam"></span></div>
+                <div class="opa-flow-step" data-opa-step="evaluate">
+                  <span class="opa-flow-icon opa-shield">🛡</span>
+                  <strong data-arch-copy="{policy}">OPA / Rego</strong>
+                  <span class="opa-flow-sub" id="opa-flow-status">Waiting…</span>
+                </div>
+                <div class="opa-flow-bridge"><span class="opa-flow-beam"></span></div>
+                <div class="opa-flow-step" data-opa-step="hitl">
+                  <span class="opa-flow-icon">👤</span>
+                  <strong>HITL gate</strong>
+                  <span class="opa-flow-sub" id="opa-flow-hitl">Human approval</span>
+                </div>
+              </div>
+              <div class="opa-result-grid">
+                <div class="opa-result-card" id="opa-result-verdict">
+                  <h4>Verdict</h4>
+                  <p class="opa-verdict-text muted" id="opa-verdict-text">Run a simulated alert and open HITL to evaluate policy.</p>
+                  <dl class="meta-list compact">
+                    <div><dt>Allowed</dt><dd id="opa-allowed">—</dd></div>
+                    <div><dt>Reason</dt><dd id="opa-reason">—</dd></div>
+                    <div><dt>Matched rule</dt><dd id="opa-matched-rule">—</dd></div>
+                    <div><dt>Destructive</dt><dd id="opa-destructive">—</dd></div>
+                  </dl>
+                </div>
+                <div class="opa-result-card">
+                  <h4>Policy rules</h4>
+                  <ul class="opa-rules-list" id="opa-rules-list"></ul>
+                </div>
+                <div class="opa-result-card opa-rego-card">
+                  <h4 data-arch-copy="Input sent to {policy}">Input sent to OPA</h4>
+                  <pre class="result-box opa-input-box" id="opa-input-json">{}</pre>
+                  <h4 style="margin-top:14px">Rego (<code>policy.rego</code>)</h4>
+                  <pre class="result-box opa-rego-box" id="opa-rego-source">Loading…</pre>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div id="tab-auto-history" class="tab-panel hidden">
+            <div class="card glossy-card">
+              <div class="card-header">
+                <div>
+                  <h3>HITL decision history</h3>
+                  <p class="muted" data-arch-copy="Every approve / reject with operator, {policy} verdict, and ticket linkage">Every approve / reject with operator, OPA verdict, and ticket linkage</p>
+                </div>
+                <div class="hitl-history-filters">
+                  <button type="button" class="btn-ghost hitl-hist-filter active" data-decision="">All</button>
+                  <button type="button" class="btn-ghost hitl-hist-filter" data-decision="approved">Approved</button>
+                  <button type="button" class="btn-ghost hitl-hist-filter" data-decision="rejected">Rejected</button>
+                  <button type="button" class="btn-outline" id="hitl-history-refresh">Refresh</button>
+                </div>
+              </div>
+              <div class="table-wrap">
+                <table class="data-table" id="hitl-history-table">
+                  <thead>
+                    <tr>
+                      <th>Time</th>
+                      <th>Decision</th>
+                      <th>Change run</th>
+                      <th>Service</th>
+                      <th>Severity</th>
+                      <th>Runbook</th>
+                      <th data-arch-copy="{policy}">OPA</th>
+                      <th>Decided by</th>
+                      <th>Reason / comment</th>
+                      <th>Ticket</th>
+                    </tr>
+                  </thead>
+                    <tbody id="hitl-history-body">
+                    <tr><td colspan="10" class="muted">Loading…</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+          <div id="tab-auto-logs" class="tab-panel hidden">
+            <div class="card glossy-card">
+              <h3>Related logs</h3>
+              <div class="log-stream" id="cr-log-preview"></div>
+            </div>
+          </div>
+        </section>
+
+        <!-- GUARDRAILS (OPA policy ops console) -->
+        <section id="sec-guardrails" class="section-panel hidden">
+          <div id="tab-grd-overview" class="tab-panel">
+            <div class="grd-stats-row" id="grd-stats-row">
+              <div class="stat-card glossy-card"><span class="stat-label">Total evaluations</span><strong id="grd-stat-total">—</strong></div>
+              <div class="stat-card glossy-card grd-stat-allow"><span class="stat-label">Allowed</span><strong id="grd-stat-allowed">—</strong></div>
+              <div class="stat-card glossy-card grd-stat-deny"><span class="stat-label">Denied</span><strong id="grd-stat-denied">—</strong></div>
+              <div class="stat-card glossy-card"><span class="stat-label">Last 24h</span><strong id="grd-stat-24h">—</strong></div>
+            </div>
+            <div class="content-grid grd-overview-grid">
+              <div class="card glossy-card">
+                <div class="card-header">
+                  <div>
+                    <h3>Policy rules</h3>
+                    <p class="muted" data-arch-copy="How {policy} evaluates agent recommendations before HITL approve and execute.">How OPA evaluates agent recommendations before HITL approve and execute.</p>
+                  </div>
+                  <a class="btn-outline" id="grd-link-opa" target="_blank" rel="noopener">Open OPA :8181</a>
+                </div>
+                <ul class="opa-rules-list grd-rules-visual" id="grd-rules-list"></ul>
+                <div class="grd-keywords-wrap">
+                  <h4>Destructive keywords</h4>
+                  <div class="grd-keywords" id="grd-keywords"></div>
+                </div>
+              </div>
+              <div class="card glossy-card">
+                <h3>Decision flow</h3>
+                <div class="opa-flow-anim grd-flow-static" id="grd-flow-static">
+                  <div class="opa-flow-step" data-opa-step="recommend">
+                    <span class="opa-flow-icon">📋</span>
+                    <strong>Recommendation</strong>
+                    <span class="opa-flow-sub">Agent output</span>
+                  </div>
+                  <div class="opa-flow-bridge"><span class="opa-flow-beam"></span></div>
+                  <div class="opa-flow-step" data-opa-step="evaluate">
+                    <span class="opa-flow-icon opa-shield">🛡</span>
+                    <strong data-arch-copy="{policy}">OPA / Rego</strong>
+                    <span class="opa-flow-sub">Live policy</span>
+                  </div>
+                  <div class="opa-flow-bridge"><span class="opa-flow-beam"></span></div>
+                  <div class="opa-flow-step" data-opa-step="hitl">
+                    <span class="opa-flow-icon">👤</span>
+                    <strong>HITL + execute</strong>
+                    <span class="opa-flow-sub">Ticket if allowed</span>
+                  </div>
+                </div>
+                <p class="muted grd-last-eval" id="grd-last-eval">No evaluations recorded yet.</p>
+              </div>
+            </div>
+          </div>
+
+          <div id="tab-grd-audit" class="tab-panel hidden">
+            <div class="card glossy-card">
+              <div class="card-header">
+                <div>
+                  <h3>Policy audit log</h3>
+                  <p class="muted" data-arch-copy="Every {policy} check from HITL preview, sandbox tests, and post-approve execute.">Every OPA check from HITL preview, sandbox tests, and post-approve execute.</p>
+                </div>
+                <div class="grd-audit-filters">
+                  <button type="button" class="btn-ghost grd-filter active" data-verdict="">All</button>
+                  <button type="button" class="btn-ghost grd-filter" data-verdict="allow">Allowed</button>
+                  <button type="button" class="btn-ghost grd-filter" data-verdict="deny">Denied</button>
+                  <button type="button" class="btn-outline" id="grd-audit-refresh">Refresh</button>
+                </div>
+              </div>
+              <div class="table-wrap">
+                <table class="data-table" id="grd-audit-table">
+                  <thead>
+                    <tr>
+                      <th>Time</th>
+                      <th>Verdict</th>
+                      <th>Service</th>
+                      <th>Severity</th>
+                      <th>Rule</th>
+                      <th>Source</th>
+                      <th>Recommendation</th>
+                    </tr>
+                  </thead>
+                  <tbody id="grd-audit-body">
+                    <tr><td colspan="7" class="muted">Loading…</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <div id="tab-grd-editor" class="tab-panel hidden">
+            <div class="content-grid grd-editor-grid">
+              <div class="card glossy-card grd-editor-main">
+                <div class="card-header">
+                  <div>
+                    <h3>Policy editor</h3>
+                    <p class="muted" data-arch-copy="Edit live policy, test in sandbox, then save — {policy} reloads.">Edit <code>policy.rego</code>, test in sandbox, then save — OPA reloads live.</p>
+                  </div>
+                  <div class="grd-editor-actions">
+                    <button type="button" class="btn-ghost" id="grd-policy-reset">Reset</button>
+                    <button type="button" class="btn-outline" id="grd-policy-test">Test sandbox</button>
+                    <button type="button" class="btn-primary btn-glossy" id="grd-policy-save"><span class="btn-shine"></span>Save &amp; reload OPA</button>
+                  </div>
+                </div>
+                <textarea class="grd-rego-editor" id="grd-rego-editor" spellcheck="false" placeholder="Loading policy.rego…"></textarea>
+                <label class="grd-save-note-label">Change note (optional)</label>
+                <input type="text" id="grd-save-note" placeholder="e.g. Allow P2 restarts for kafka consumers">
+              </div>
+              <aside class="card glossy-card grd-sandbox">
+                <h3>Sandbox test</h3>
+                <label>Service</label>
+                <input type="text" id="grd-test-service" value="order-events-consumer">
+                <label>Severity</label>
+                <select id="grd-test-severity">
+                  <option value="P1">P1</option>
+                  <option value="P2">P2</option>
+                  <option value="P3" selected>P3</option>
+                </select>
+                <label>Recommendation</label>
+                <textarea id="grd-test-recommendation" rows="4">Restart consumer pods to clear lag</textarea>
+                <button type="button" class="btn-outline btn-block" id="grd-test-run">Evaluate (no audit)</button>
+                <div class="grd-test-result" id="grd-test-result">
+                  <p class="muted" data-arch-copy="Run a sandbox evaluation against live {policy}.">Run a sandbox evaluation against live OPA.</p>
+                </div>
+                <h4 style="margin-top:18px">Recent revisions</h4>
+                <ul class="grd-revisions-list" id="grd-revisions-list"></ul>
+              </aside>
+            </div>
+          </div>
+        </section>
+
+        <!-- INGESTION -->
+        <section id="sec-ingestion" class="section-panel hidden">
+          <div id="tab-ing-pipeline" class="tab-panel">
+            <div class="card glossy-card ingest-arch-panel">
+              <div class="ingest-arch-header">
+                <div>
+                  <h3>Runbook ingestion pipeline</h3>
+                  <p class="muted" data-arch-copy="Architecture overview — how <code>.md</code> runbooks move from source into {vector} before the agent uses RAG. This screen is visual only; trigger sync and reindex on <strong>Status &amp; Actions</strong>.">Architecture overview — how <code>.md</code> runbooks move from source into Chroma before the agent uses RAG. This screen is visual only; trigger sync and reindex on <strong>Status &amp; Actions</strong>.</p>
+                </div>
+                <span class="ing-flow-badge">Live diagram</span>
+              </div>
+
+              <div class="ing-flow-anim" id="ing-flow-anim" aria-hidden="true">
+                <div class="ing-flow-stage" data-stage="drive">
+                  <div class="ing-flow-icon ing-flow-drive">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"/></svg>
+                    <span class="ing-flow-file ing-f1">.md</span>
+                    <span class="ing-flow-file ing-f2">.md</span>
+                    <span class="ing-flow-file ing-f3">.md</span>
+                  </div>
+                  <strong>Google Drive</strong>
+                  <span class="ing-flow-sub">Shared runbook folder</span>
+                  <span class="ing-flow-step-pill" data-step="1">① Fetch</span>
+                </div>
+
+                <div class="ing-flow-bridge">
+                  <div class="ing-flow-track"><span class="ing-flow-packet ing-pk1"></span><span class="ing-flow-packet ing-pk2"></span></div>
+                  <span class="ing-flow-bridge-label">sync</span>
+                </div>
+
+                <div class="ing-flow-stage" data-stage="staging">
+                  <div class="ing-flow-icon ing-flow-folder">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+                    <div class="ing-folder-stack"><span></span><span></span><span></span></div>
+                  </div>
+                  <strong>/data/runbooks</strong>
+                  <span class="ing-flow-sub">Local staging · parse &amp; chunk</span>
+                  <span class="ing-flow-step-pill" data-step="2">② Parse</span>
+                </div>
+
+                <div class="ing-flow-bridge">
+                  <div class="ing-flow-track embed"><span class="ing-flow-packet ing-pk3"></span><span class="ing-flow-packet ing-pk4"></span><span class="ing-flow-packet ing-pk5"></span></div>
+                  <span class="ing-flow-bridge-label">384d embed</span>
+                </div>
+
+                <div class="ing-flow-stage" data-stage="embed">
+                  <div class="ing-flow-icon ing-flow-embed">
+                    <div class="ing-embed-grid"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
+                    <span class="ing-embed-label">MiniLM</span>
+                  </div>
+                  <strong>Embeddings</strong>
+                  <span class="ing-flow-sub">all-MiniLM-L6-v2 · cosine</span>
+                  <span class="ing-flow-step-pill" data-step="3">③ Vectorize</span>
+                </div>
+
+                <div class="ing-flow-bridge">
+                  <div class="ing-flow-track store"><span class="ing-flow-packet ing-pk6"></span><span class="ing-flow-packet ing-pk7"></span></div>
+                  <span class="ing-flow-bridge-label">upsert</span>
+                </div>
+
+                <div class="ing-flow-stage" data-stage="chroma">
+                  <div class="ing-flow-icon ing-flow-chroma">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>
+                    <span class="ing-vector ing-v1"></span>
+                    <span class="ing-vector ing-v2"></span>
+                    <span class="ing-vector ing-v3"></span>
+                  </div>
+                  <strong data-arch-copy="{vector} Index">Chroma Index</strong>
+                  <span class="ing-flow-sub">Persistent vector store</span>
+                  <span class="ing-flow-step-pill" data-step="4">④ Store</span>
+                </div>
+              </div>
+
+              <div class="ing-flow-caption-wrap">
+                <span class="ing-flow-caption-dot"></span>
+                <p id="ing-flow-caption" class="ing-flow-caption">Runbooks sync from Drive into local staging…</p>
+              </div>
+
+              <div class="ing-flow-meta">
+                <dl class="ing-flow-stats" id="ing-flow-stats">
+                  <div><dt>Active index</dt><dd id="ing-flow-index">—</dd></div>
+                  <div><dt>Google Drive</dt><dd id="ing-flow-drive">—</dd></div>
+                  <div><dt>Last job</dt><dd id="ing-flow-job">—</dd></div>
+                </dl>
+                <button type="button" class="btn-outline btn-sm" id="btn-go-ingest-actions">Status &amp; Actions →</button>
+              </div>
+            </div>
+
+            <div class="info-banner glossy-banner info">
+              <div class="info-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg></div>
+              <div><strong>Incremental ingestion</strong><p data-arch-copy="Only new or modified files are re-indexed. The agent retrieves runbook chunks from {vector} during incident triage.">Only new or modified files are re-indexed. The agent retrieves runbook chunks from Chroma during incident triage.</p></div>
+            </div>
+
+            <div class="card glossy-card stack-explore-card">
+              <div class="card-header">
+                <div>
+                  <h3>Explore the native UIs</h3>
+                  <p class="muted">This console is the control plane. Open each product UI in another tab — same data, vendor’s own screens.</p>
+                </div>
+              </div>
+              <div class="stack-explore-grid" id="stack-explore-grid"></div>
+            </div>
+          </div>
+          <div id="tab-ing-status" class="tab-panel hidden">
+            <div class="ingest-grid">
+              <div class="card glossy-card">
+                <h3>Status <span class="status-dot healthy"></span> <span id="ingest-health-label">Loading…</span></h3>
+                <dl class="status-list">
+                  <div><dt>Active collection</dt><dd id="st-collection" class="mono-accent">—</dd></div>
+                  <div><dt>Index version</dt><dd id="st-version">—</dd></div>
+                  <div><dt>Google Drive</dt><dd id="st-drive">—</dd></div>
+                  <div><dt>Last job</dt><dd id="st-job">—</dd></div>
+                  <div><dt>Files changed</dt><dd id="st-files">—</dd></div>
+                  <div><dt>Last run</dt><dd id="st-last-run">—</dd></div>
+                  <div><dt>Duration</dt><dd id="st-duration">—</dd></div>
+                  <div><dt>Next cron</dt><dd id="st-next-run">00:00 UTC (Daily)</dd></div>
+                </dl>
+              </div>
+              <div class="card glossy-card">
+                <h3>Actions</h3>
+                <button class="btn-primary btn-glossy block" id="btn-reindex"><span class="btn-shine"></span>Reindex now</button>
+                <button class="btn-outline block" id="btn-sync-drive">Sync Drive</button>
+                <div id="ingest-job-live" class="ingest-job-live hidden" aria-live="polite">
+                  <div class="ingest-pipeline-anim" aria-hidden="true">
+                    <div class="ipa-stage ipa-file active" data-stage="parse">
+                      <div class="ipa-doc">
+                        <div class="ipa-doc-badge">.md</div>
+                        <div class="ipa-doc-line"></div>
+                        <div class="ipa-doc-line w70"></div>
+                        <div class="ipa-doc-line w85"></div>
+                        <div class="ipa-doc-line w55"></div>
+                        <div class="ipa-scan-beam"></div>
+                        <div class="ipa-chunk ipa-chunk-1"></div>
+                        <div class="ipa-chunk ipa-chunk-2"></div>
+                        <div class="ipa-chunk ipa-chunk-3"></div>
+                      </div>
+                      <span class="ipa-stage-label">Parse</span>
+                    </div>
+                    <div class="ipa-conduit">
+                      <div class="ipa-conduit-track"></div>
+                      <span class="ipa-particle ipa-p1"></span>
+                      <span class="ipa-particle ipa-p2"></span>
+                      <span class="ipa-particle ipa-p3"></span>
+                    </div>
+                    <div class="ipa-stage ipa-embed" data-stage="embed">
+                      <div class="ipa-matrix">
+                        <span></span><span></span><span></span><span></span>
+                        <span></span><span></span><span></span><span></span>
+                        <span></span><span></span><span></span><span></span>
+                      </div>
+                      <span class="ipa-dim">384d</span>
+                      <span class="ipa-stage-label">Embed</span>
+                    </div>
+                    <div class="ipa-conduit">
+                      <div class="ipa-conduit-track"></div>
+                      <span class="ipa-particle ipa-p4"></span>
+                      <span class="ipa-particle ipa-p5"></span>
+                    </div>
+                    <div class="ipa-stage ipa-chroma" data-stage="store">
+                      <div class="ipa-vector-db">
+                        <div class="ipa-db-top"></div>
+                        <div class="ipa-db-body">
+                          <span class="ipa-vector ipa-v1"></span>
+                          <span class="ipa-vector ipa-v2"></span>
+                          <span class="ipa-vector ipa-v3"></span>
+                          <span class="ipa-vector ipa-v4"></span>
+                          <span class="ipa-vector ipa-v5"></span>
+                        </div>
+                        <div class="ipa-db-base"></div>
+                      </div>
+                      <span class="ipa-stage-label" data-arch-copy="{vector}">Chroma</span>
+                    </div>
+                  </div>
+                  <div class="ingest-job-live-footer">
+                    <div class="ingest-job-live-head">
+                      <strong id="ingest-job-live-title">Running ingestion job…</strong>
+                      <span id="ingest-job-live-step" class="ipa-step-pill">Parsing runbook.md</span>
+                    </div>
+                    <span id="ingest-job-live-detail" data-arch-copy="Syncing sources and embedding runbooks into {vector}">Syncing sources and embedding runbooks into Chroma</span>
+                    <div class="ipa-progress"><div class="ipa-progress-bar"></div></div>
+                  </div>
+                </div>
+                <p class="ingest-job-msg muted" id="ingest-job-msg"></p>
+              </div>
+            </div>
+          </div>
+          <div id="tab-ing-jobs" class="tab-panel hidden">
+            <div class="chroma-explorer">
+              <div class="chroma-explorer-header">
+                <div class="chroma-brand">
+                  <div class="chroma-logo-mark" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>
+                  </div>
+                  <div>
+                    <h3 id="vector-explorer-title">Chroma Vector Explorer</h3>
+                    <p class="muted" id="index-summary">Loading index…</p>
+                    <code class="vector-url-chip" id="vector-native-url">http://localhost:8088</code>
+                  </div>
+                </div>
+                <div class="chroma-explorer-header-actions">
+                  <a class="btn-primary btn-sm" id="link-vector-native" data-testid="open-vector" target="_blank" rel="noopener">Open vector DB ↗</a>
+                  <button class="btn-outline" id="btn-refresh-index" type="button">Refresh index</button>
+                </div>
+              </div>
+
+              <div class="chroma-stats-grid" id="chroma-stats-grid"></div>
+
+              <div class="card glossy-card chroma-vspace-card">
+                <div class="chroma-panel-head">
+                  <div>
+                    <h4>Vector space map</h4>
+                    <p class="muted">Each runbook chunk lives in <strong>384-dimensional</strong> space. Similar meaning → closer points. Below is a 2D projection of your indexed vectors.</p>
+                  </div>
+                  <span class="chroma-feature-pill">cosine distance</span>
+                </div>
+                <div class="chroma-vspace-layout">
+                  <div class="chroma-vspace-main">
+                    <div class="chroma-vspace-canvas-wrap">
+                      <svg id="chroma-vspace-svg" class="chroma-vspace-svg" viewBox="0 0 440 300" role="img" aria-label="Vector space projection of indexed runbook chunks">
+                        <defs>
+                          <radialGradient id="vspace-bg" cx="50%" cy="50%" r="65%">
+                            <stop offset="0%" stop-color="#f8fafc"/>
+                            <stop offset="100%" stop-color="#eef2ff"/>
+                          </radialGradient>
+                          <filter id="vspace-glow"><feGaussianBlur stdDeviation="2" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+                        </defs>
+                        <rect width="440" height="300" fill="url(#vspace-bg)" rx="12"/>
+                        <g id="chroma-vspace-grid"></g>
+                        <g id="chroma-vspace-links"></g>
+                        <g id="chroma-vspace-points"></g>
+                        <g id="chroma-vspace-query"></g>
+                        <text x="220" y="292" text-anchor="middle" class="vspace-axis-label">← semantic axis (projected dim A) →</text>
+                        <text x="12" y="150" transform="rotate(-90 12 150)" text-anchor="middle" class="vspace-axis-label">semantic axis B</text>
+                      </svg>
+                      <div class="chroma-vspace-overlay-tag" id="chroma-vspace-tag">384d hyperspace → 2D view</div>
+                    </div>
+                    <div class="chroma-vspace-legend" id="chroma-vspace-legend"></div>
+                  </div>
+                  <aside class="chroma-vspace-aside">
+                    <div class="chroma-dim-panel">
+                      <h5>384 embedding dimensions</h5>
+                      <p class="muted dim-caption">Each bar is one float in the vector — together they encode runbook meaning.</p>
+                      <div class="chroma-dim-strip-wrap">
+                        <div class="chroma-dim-strip" id="chroma-dim-strip" aria-hidden="true"></div>
+                        <div class="chroma-dim-strip-labels">
+                          <span>dim 0</span><span>dim 192</span><span>dim 383</span>
+                        </div>
+                      </div>
+                      <div class="chroma-dim-preview" id="chroma-dim-preview">
+                        <span class="muted">Hover a point or run a query to preview vector components</span>
+                      </div>
+                    </div>
+                    <ol class="chroma-vspace-steps">
+                      <li><strong>Text → vector</strong> — MiniLM converts each chunk to 384 numbers</li>
+                      <li data-arch-copy="<strong>Store in {vector}</strong> — vectors indexed for fast nearest-neighbor search"><strong>Store in Chroma</strong> — vectors indexed for fast nearest-neighbor search</li>
+                      <li><strong>Query</strong> — your question becomes a vector; closest points = best matches</li>
+                    </ol>
+                  </aside>
+                </div>
+                <p class="chroma-vspace-hint muted" id="chroma-vspace-hint">Tip: run a semantic query above — your search vector appears as ★ with lines to nearest neighbors.</p>
+              </div>
+
+              <div class="card glossy-card chroma-collections-card">
+                <div class="chroma-panel-head">
+                  <div>
+                    <h4>Collections</h4>
+                    <p class="muted" data-arch-copy="{vector} persistent store · active collection used by RAG retrieval">ChromaDB persistent store · active collection used by RAG retrieval</p>
+                  </div>
+                  <span class="chroma-feature-pill" data-arch-copy="{vectorApiList}">list_collections()</span>
+                </div>
+                <div id="chroma-collections-list" class="chroma-collections-list"></div>
+              </div>
+
+              <div class="card glossy-card chroma-search-card">
+                <div class="chroma-search-head">
+                  <div>
+                    <h4>Semantic query</h4>
+                    <p class="muted" data-arch-copy="{vector} · embed query · cosine distance · metadata filters">ChromaDB · embed query · cosine distance · metadata <code>where</code> filters</p>
+                  </div>
+                  <span class="chroma-feature-pill" data-arch-copy="{vectorApiQuery}">collection.query()</span>
+                </div>
+                <form id="chroma-query-form" class="chroma-query-form">
+                  <div class="chroma-query-row">
+                    <input id="chroma-query-input" type="search" placeholder="e.g. redis pool timeout checkout service degradation" autocomplete="off" />
+                    <button class="btn-primary btn-glossy" type="submit"><span class="btn-shine"></span>Query vectors</button>
+                  </div>
+                  <div class="chroma-filters">
+                    <label>Service<select id="chroma-filter-service"><option value="">All services</option></select></label>
+                    <label>Severity<select id="chroma-filter-severity"><option value="">All severities</option></select></label>
+                    <label>Runbook<select id="chroma-filter-runbook"><option value="">All runbooks</option></select></label>
+                    <label>Results<select id="chroma-n-results"><option value="5">Top 5</option><option value="8">Top 8</option><option value="12">Top 12</option></select></label>
+                  </div>
+                </form>
+                <div id="chroma-query-results" class="chroma-query-results hidden"></div>
+              </div>
+
+              <div class="chroma-layout">
+                <div class="chroma-runbooks-panel card glossy-card">
+                  <div class="chroma-panel-head">
+                    <h4>Indexed runbooks</h4>
+                    <span class="muted" id="chroma-runbook-count">—</span>
+                  </div>
+                  <div id="chroma-runbooks-grid" class="chroma-runbooks-grid"></div>
+                </div>
+                <aside id="chroma-inspector" class="chroma-inspector card glossy-card hidden">
+                  <div class="chroma-panel-head">
+                    <h4>Chunk inspector</h4>
+                    <button type="button" class="btn-ghost-sm" id="chroma-inspector-close">Close</button>
+                  </div>
+                  <div id="chroma-inspector-body" class="chroma-inspector-body"></div>
+                </aside>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- OBSERVABILITY -->
+        <section id="sec-observability" class="section-panel hidden">
+          <div id="tab-obs-simulator" class="tab-panel">
+            <div class="alert-sim-head">
+              <div>
+                <h3>End-to-End Alert Journey</h3>
+                <p class="muted" data-arch-copy="Generate alerts on demand · watch signals → agent → {vector} RAG → {policy} → HITL approval">Generate alerts on demand · watch signals → agent → Chroma RAG → OPA → HITL approval</p>
+              </div>
+              <div class="trace-header-actions">
+                <button type="button" class="btn-outline" id="obs-sim-refresh">Refresh</button>
+                <button type="button" class="btn-outline" id="obs-sim-preview">Walkthrough</button>
+                <button type="button" class="btn-primary btn-glossy" id="obs-sim-fire"><span class="btn-shine"></span>Fire &amp; Request Approval</button>
+              </div>
+            </div>
+
+            <div class="alert-sim-grid-top">
+              <div class="card glossy-card">
+                <div class="card-header"><h3>Preset alerts</h3><p class="muted" data-arch-copy="Click to select · checkout has a live {metrics} rule">Click to select · checkout has live Prometheus rule</p></div>
+                <div class="alert-type-grid" id="alert-type-grid"></div>
+              </div>
+              <div class="card glossy-card alert-custom-card">
+                <div class="card-header"><h3>Custom alert</h3><p class="muted">On-demand payload — same flow as production webhooks</p></div>
+                <form id="obs-custom-alert-form" class="form-grid compact-form">
+                  <label>Service<select id="obs-custom-service">
+                    <option value="checkout-service">checkout-service</option>
+                    <option value="payment-api">payment-api</option>
+                    <option value="auth-service">auth-service</option>
+                    <option value="order-service">order-service</option>
+                  </select></label>
+                  <label>Severity<select id="obs-custom-severity"><option>P1</option><option>P2</option><option>P3</option></select></label>
+                  <label class="full">Error summary<input type="text" id="obs-custom-summary" placeholder="HTTP 500 spike on /checkout"></label>
+                  <label class="full">Log snippet<textarea id="obs-custom-log" rows="2" placeholder="Timeout waiting for connection pool (Redis)"></textarea></label>
+                  <button type="button" class="btn-outline" id="obs-custom-use">Use custom alert</button>
+                </form>
+              </div>
+            </div>
+
+            <div class="alert-phase-tabs" id="alert-phase-tabs">
+              <button type="button" class="alert-phase-tab is-active" data-phase="all">Full journey</button>
+              <button type="button" class="alert-phase-tab" data-phase="ingestion">Signals</button>
+              <button type="button" class="alert-phase-tab" data-phase="agent">Agent</button>
+              <button type="button" class="alert-phase-tab" data-phase="guardrails" data-arch-copy="{policy}">OPA</button>
+              <button type="button" class="alert-phase-tab" data-phase="hitl">HITL</button>
+            </div>
+
+            <div class="card glossy-card alert-flow-panel">
+              <div class="card-header">
+                <h3>Live pipeline <small class="alert-design-tag" id="alert-journey-design"></small></h3>
+                <span class="live-pill pulse-dot" id="obs-sim-flow-status">Select an alert</span>
+              </div>
+              <div class="alert-journey-scroll-wrap">
+                <button type="button" class="journey-scroll-btn" id="alert-journey-scroll-left" aria-label="Scroll pipeline left">‹</button>
+                <div class="alert-journey-track" id="alert-journey-track" tabindex="0"></div>
+                <button type="button" class="journey-scroll-btn" id="alert-journey-scroll-right" aria-label="Scroll pipeline right">›</button>
+              </div>
+              <p class="alert-flow-caption muted" id="alert-flow-caption">Preset or custom alert → Walkthrough or Fire.</p>
+            </div>
+
+            <div class="alert-sim-split alert-sim-split-wide">
+              <div class="card glossy-card alert-visual-card">
+                <div class="card-header">
+                  <h3 id="obs-sim-visual-title">Step breakdown</h3>
+                  <select id="obs-sim-step-select" class="btn-outline alert-step-select"></select>
+                </div>
+                <div class="alert-step-visual" id="obs-sim-step-visual">
+                  <p class="muted empty-visual">Run a walkthrough to see what happens inside each system.</p>
+                </div>
+                <details class="alert-payload-details">
+                  <summary>Raw JSON payload</summary>
+                  <pre class="result-box alert-payload-box" id="obs-sim-payload">{}</pre>
+                </details>
+              </div>
+              <div class="alert-ext-views">
+                <div class="card glossy-card alert-ext-card">
+                  <div class="card-header"><h3 data-arch-copy="{metrics}">Prometheus</h3><a class="btn-ghost btn-sm" id="obs-link-prometheus" data-testid="open-metrics" target="_blank" rel="noopener">Open ↗</a></div>
+                  <div class="alert-ext-body" id="obs-sim-prom-view"></div>
+                </div>
+                <div class="card glossy-card alert-ext-card">
+                  <div class="card-header"><h3 data-arch-copy="{dashboards}">Grafana</h3><a class="btn-ghost btn-sm" id="obs-link-grafana" data-testid="open-dashboards" target="_blank" rel="noopener">Open ↗</a></div>
+                  <div class="alert-ext-body" id="obs-sim-grafana-view"></div>
+                </div>
+                <div class="card glossy-card alert-ext-card">
+                  <div class="card-header"><h3 data-arch-copy="{logs}">Loki</h3><a class="btn-ghost btn-sm" id="obs-link-loki" data-testid="open-logs" target="_blank" rel="noopener">Open ↗</a></div>
+                  <div class="alert-ext-body log-stream" id="obs-sim-loki-view"></div>
+                </div>
+              </div>
+            </div>
+
+            <div class="alert-hitl-banner hidden glossy-banner" id="obs-hitl-banner">
+              <div class="alert-hitl-banner-body">
+                <span class="alert-hitl-icon">🛡️</span>
+                <div>
+                  <h3>HITL approval required</h3>
+                  <p class="muted" id="obs-hitl-banner-text">Destructive remediation paused — operator must approve in Simulation.</p>
+                  <dl class="meta-list compact">
+                    <div><dt>Service</dt><dd id="obs-hitl-service">—</dd></div>
+                    <div><dt>Runbook</dt><dd id="obs-hitl-runbook">—</dd></div>
+                    <div><dt>Thread</dt><dd id="obs-hitl-thread">—</dd></div>
+                  </dl>
+                </div>
+              </div>
+              <div class="alert-hitl-actions">
+                <button type="button" class="btn-primary btn-glossy" id="obs-hitl-open-sim"><span class="btn-shine"></span>Open HITL Review</button>
+                <button type="button" class="btn-outline" id="obs-hitl-open-trace">View Langfuse trace</button>
+              </div>
+            </div>
+          </div>
+          <div id="tab-obs-alert" class="tab-panel hidden">
+            <div class="alert-hero glossy-banner alert">
+              <div>
+                <h2>CheckoutHighErrorRate <span class="badge p1 glow-badge">P1</span></h2>
+                <span class="firing-badge pulse-badge" data-arch-copy="{alertFiring}">Prometheus Alert FIRING</span>
+                <p class="muted">High error rate detected for checkout-service</p>
+                <dl class="meta-list compact">
+                  <div><dt>Service</dt><dd>checkout-service</dd></div>
+                  <div><dt>Alert</dt><dd>CheckoutHighErrorRate</dd></div>
+                  <div><dt>Firing since</dt><dd>2m 34s</dd></div>
+                </dl>
+              </div>
+              <div class="hero-actions">
+                <a class="btn-outline" id="link-prometheus-alert" data-testid="open-metrics-alert" target="_blank" rel="noopener">Prometheus</a>
+                <a class="btn-primary btn-glossy" id="link-grafana-alert" target="_blank" rel="noopener"><span class="btn-shine"></span>Grafana</a>
+              </div>
+            </div>
+          </div>
+          <div id="tab-obs-logs" class="tab-panel hidden">
+            <div class="card glossy-card">
+              <div class="card-header"><h3 data-arch-copy="{logsQuery}">Loki · {app="checkout-service"}</h3><span class="live-pill pulse-dot">Live</span></div>
+              <div class="log-stream">
+                <div class="log-line info"><span class="log-ts">10:15:47</span> INFO request started /checkout</div>
+                <div class="log-line warn"><span class="log-ts">10:15:47</span> WARN redis pool utilization 94%</div>
+                <div class="log-line error"><span class="log-ts">10:15:48</span> ERROR Timeout waiting for connection pool (Redis)</div>
+              </div>
+            </div>
+          </div>
+          <div id="tab-obs-metrics" class="tab-panel hidden">
+            <div class="card glossy-card">
+              <h3>error_rate_5m · checkout-service</h3>
+              <div class="metric-chart">
+                <svg viewBox="0 0 400 120" class="sparkline animated-line"><polyline fill="none" stroke="url(#lineGrad)" stroke-width="2.5" points="0,110 80,105 160,85 240,35 320,18 400,12"/><defs><linearGradient id="lineGrad" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="#ff6b9d"/><stop offset="100%" stop-color="#ff453a"/></linearGradient></defs></svg>
+              </div>
+              <p class="muted">current: <span class="priority-p1">8.00%</span> · threshold 5%</p>
+            </div>
+          </div>
+        </section>
+
+        <!-- EVALUATION -->
+        <section id="sec-evaluation" class="section-panel hidden">
+          <div id="tab-eval-analytics" class="tab-panel lf-analytics-panel">
+            <div class="lf-dash-head">
+              <div>
+                <h3>Agent Analytics</h3>
+                <p class="muted" data-arch-copy="{llmops}-backed KPIs · latency · LLM/tool breakdown · scores synced to {llmops} dashboard">Langfuse-backed KPIs · latency · LLM/tool breakdown · scores synced to Langfuse dashboard</p>
+              </div>
+              <div class="trace-header-actions">
+                <button type="button" class="btn-outline" id="eval-analytics-refresh">Refresh</button>
+                <a class="btn-outline" id="link-langfuse-scores" target="_blank" rel="noopener">Langfuse Scores</a>
+                <a class="btn-primary btn-glossy" id="link-langfuse-dashboard" target="_blank" rel="noopener"><span class="btn-shine"></span>Open Langfuse</a>
+              </div>
+            </div>
+            <div class="lf-kpi-grid" id="lf-kpi-grid">
+              <div class="stat-card glossy-card"><span class="stat-label">Total Traces</span><strong id="lf-kpi-traces">—</strong></div>
+              <div class="stat-card glossy-card"><span class="stat-label">Avg Pipeline Latency</span><strong id="lf-kpi-latency">—</strong></div>
+              <div class="stat-card glossy-card"><span class="stat-label">LLM Calls</span><strong id="lf-kpi-llm">—</strong></div>
+              <div class="stat-card glossy-card"><span class="stat-label">Tool Calls</span><strong id="lf-kpi-tools">—</strong></div>
+              <div class="stat-card glossy-card"><span class="stat-label">P95 Latency</span><strong id="lf-kpi-p95">—</strong></div>
+              <div class="stat-card glossy-card"><span class="stat-label">Observations / Trace</span><strong id="lf-kpi-obs">—</strong></div>
+            </div>
+            <div class="lf-chart-grid">
+              <div class="card glossy-card lf-chart-card">
+                <div class="card-header"><h3>Daily trace activity</h3><span class="muted" data-arch-copy="{llmops} metrics/daily">Langfuse metrics/daily</span></div>
+                <div class="lf-chart" id="lf-chart-daily"></div>
+              </div>
+              <div class="card glossy-card lf-chart-card">
+                <div class="card-header"><h3>Pipeline latency trend</h3><span class="muted">Recent runs (ms)</span></div>
+                <div class="lf-chart" id="lf-chart-latency"></div>
+              </div>
+              <div class="card glossy-card lf-chart-card">
+                <div class="card-header"><h3>Latency by pipeline phase</h3><span class="muted">Orchestrator nodes</span></div>
+                <div class="lf-chart" id="lf-chart-phase"></div>
+              </div>
+              <div class="card glossy-card lf-chart-card">
+                <div class="card-header"><h3>Span type mix</h3><span class="muted">Agent · LLM · Tool</span></div>
+                <div class="lf-chart lf-chart-donut-wrap" id="lf-chart-spans"></div>
+              </div>
+              <div class="card glossy-card lf-chart-card">
+                <div class="card-header"><h3>Tool latency</h3><span class="muted" data-arch-copy="{vector} · {logs} · {metrics} · {policy}">Chroma · Loki · Prometheus · OPA</span></div>
+                <div class="lf-chart" id="lf-chart-tools"></div>
+              </div>
+              <div class="card glossy-card lf-chart-card">
+                <div class="card-header"><h3>Agent mode breakdown</h3><span class="muted">standalone · multi · mcp</span></div>
+                <div class="lf-chart" id="lf-chart-modes"></div>
+              </div>
+            </div>
+            <div class="dashboard-grid">
+              <div class="card glossy-card">
+                <div class="card-header"><h3 data-arch-copy="{llmops} scores">Langfuse scores</h3><p class="muted" data-arch-copy="Auto-recorded after each pipeline run — visible in {llmops} Scores tab">Auto-recorded after each pipeline run — visible in Langfuse Scores tab</p></div>
+                <table class="data-table" id="lf-scores-table">
+                  <thead><tr><th>Score</th><th>Latest</th><th>Average</th><th>Count</th></tr></thead>
+                  <tbody><tr><td colspan="4" class="muted">Loading…</td></tr></tbody>
+                </table>
+              </div>
+              <div class="card glossy-card">
+                <div class="card-header"><h3>Recent traces</h3><p class="muted" data-arch-copy="Click row to open in {llmops}">Click row to open in Langfuse</p></div>
+                <table class="data-table recent-runs-table" id="lf-recent-traces">
+                  <thead><tr><th>Trace</th><th>Mode</th><th>Latency</th><th>Time</th></tr></thead>
+                  <tbody><tr><td colspan="4" class="muted">Loading…</td></tr></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+          <div id="tab-eval-trace" class="tab-panel hidden">
+            <div class="card glossy-card">
+              <div class="card-header">
+                <div>
+                  <h3>Agent Trace</h3>
+                  <p class="muted" id="eval-trace-subtitle">Orchestrator → pipeline nodes → LLM calls → tools · session = thread_id</p>
+                </div>
+                <div class="trace-header-actions">
+                  <button type="button" class="btn-outline" id="eval-trace-refresh">Refresh</button>
+                  <a class="btn-outline" id="link-trace-eval" target="_blank" rel="noopener">Open Langfuse</a>
+                </div>
+              </div>
+              <div class="trace-summary" id="eval-trace-summary">
+                <span class="trace-pill" id="eval-trace-name">—</span>
+                <span class="trace-pill muted" id="eval-trace-count">0 spans</span>
+              </div>
+              <ul class="trace-spans trace-tree" id="eval-trace-spans">
+                <li class="trace-empty"><span class="span-name muted">Run the pipeline to load a live trace</span></li>
+              </ul>
+              <p class="muted trace-legend">
+                <span class="legend-item"><span class="type-dot agent"></span> Orchestrator / sub-agent</span>
+                <span class="legend-item"><span class="type-dot generation"></span> LLM call</span>
+                <span class="legend-item"><span class="type-dot tool"></span> Tool / integration</span>
+              </p>
+            </div>
+          </div>
+          <div id="tab-eval-gate" class="tab-panel hidden">
+            <div class="card glossy-card eval-how-card" id="eval-how-it-works">
+              <div class="card-header">
+                <div>
+                  <h3>How eval works</h3>
+                  <p class="muted">Golden-set regression against the live LangGraph agent — on demand, no CI/CD required</p>
+                </div>
+                <button type="button" class="btn-ghost btn-sm" id="eval-how-toggle" aria-expanded="true">Collapse</button>
+              </div>
+              <div class="eval-how-body" id="eval-how-body">
+                <ol class="eval-how-steps">
+                  <li><strong>Load golden cases</strong> — <code>agent/evals/golden_alerts.json</code> (8 fixtures: checkout, payment, auth, DB pool…)</li>
+                  <li data-arch-copy="<strong>Invoke agent</strong> — each case runs the real graph: classify → {vector} RAG → logs → metrics → recommend → HITL"><strong>Invoke agent</strong> — each case runs the real graph: classify → Chroma RAG → logs → metrics → recommend → HITL</li>
+                  <li><strong>Score per case</strong>
+                    <ul>
+                      <li data-arch-copy="<em>RAG Recall@3</em> — expected runbook in top-3 {vector} results"><em>RAG Recall@3</em> — expected runbook in top-3 Chroma results</li>
+                      <li><em>Groundedness</em> — recommendation mentions runbook keywords</li>
+                      <li><em>Correctness</em> — actual runbook_id matches expected</li>
+                      <li><em>Tool / HITL accuracy</em> — requires_hitl matches expects_hitl flag</li>
+                      <li><em>P95 latency</em> — end-to-end graph time per case</li>
+                    </ul>
+                  </li>
+                  <li><strong>Gate verdict</strong> — PASS if all averages meet thresholds (RAG ≥85%, groundedness ≥80%, correctness ≥85%, latency ≤8s)</li>
+                  <li data-arch-copy="<strong>Publish scores</strong> — results saved to PostgreSQL, pushed to {llmops} scores + MLflow metrics"><strong>Publish scores</strong> — results saved to PostgreSQL, pushed to Langfuse scores + MLflow metrics</li>
+                </ol>
+                <p class="muted eval-how-practice" data-arch-copy="<strong>Practice:</strong> Run Eval Suite below → inspect per-case table → open MLflow experiment <code>ops-triage-eval-gate</code> → compare with {llmops} trace session <code>eval-&lt;run-id&gt;</code>"><strong>Practice:</strong> Run Eval Suite below → inspect per-case table → open MLflow experiment <code>ops-triage-eval-gate</code> → compare with Langfuse trace session <code>eval-&lt;run-id&gt;</code></p>
+              </div>
+            </div>
+            <div class="lf-dash-head">
+              <div>
+                <h3>Eval &amp; Scores</h3>
+                <p class="muted" data-arch-copy="Golden-set regression · on-demand eval gate · scores synced to {llmops} &amp; MLflow">Golden-set regression · on-demand eval gate · scores synced to Langfuse &amp; MLflow</p>
+                <p class="muted eval-ci-note">Runs here on demand and as the required GitHub check <code>eval-gate / golden-set</code>. Org/repo stay <code>YOUR_GITHUB_ORG</code> / <code>YOUR_GITHUB_REPO</code> until wired — see <strong>Governance</strong>.</p>
+              </div>
+              <div class="trace-header-actions">
+                <button type="button" class="btn-outline" id="eval-gate-refresh">Refresh</button>
+                <button type="button" class="btn-primary btn-glossy" id="eval-gate-run"><span class="btn-shine"></span>Run Eval Suite</button>
+                <a class="btn-outline" id="link-mlflow-eval" target="_blank" rel="noopener">MLflow</a>
+              </div>
+            </div>
+            <div class="eval-gate-banner hidden" id="eval-gate-banner"></div>
+            <div class="eval-run-theater hidden" id="eval-run-theater" aria-live="polite">
+              <div class="eval-theater-glow"></div>
+              <div class="eval-theater-head">
+                <div>
+                  <span class="eval-theater-badge pulse-dot">EVAL RUNNING</span>
+                  <h4 id="eval-theater-title">Golden-set regression</h4>
+                  <p class="muted" id="eval-theater-sub">Invoking LangGraph agent per fixture…</p>
+                </div>
+                <div class="eval-theater-ring" aria-hidden="true">
+                  <svg viewBox="0 0 80 80"><circle class="eval-ring-bg" cx="40" cy="40" r="34"/><circle class="eval-ring-progress" id="eval-ring-progress" cx="40" cy="40" r="34"/></svg>
+                  <span class="eval-ring-label" id="eval-ring-label">0%</span>
+                </div>
+              </div>
+              <div class="eval-graph-anim" id="eval-graph-anim">
+                <div class="eval-graph-node" data-node="classify"><span>🎯</span><small>classify</small></div>
+                <div class="eval-graph-bridge"><span class="eval-graph-beam"></span></div>
+                <div class="eval-graph-node" data-node="rag"><span>📚</span><small data-arch-copy="{vector}">Chroma</small></div>
+                <div class="eval-graph-bridge"><span class="eval-graph-beam"></span></div>
+                <div class="eval-graph-node" data-node="logs"><span>📋</span><small>logs</small></div>
+                <div class="eval-graph-bridge"><span class="eval-graph-beam"></span></div>
+                <div class="eval-graph-node" data-node="metrics"><span>📈</span><small>metrics</small></div>
+                <div class="eval-graph-bridge"><span class="eval-graph-beam"></span></div>
+                <div class="eval-graph-node" data-node="recommend"><span>💡</span><small>recommend</small></div>
+                <div class="eval-graph-bridge"><span class="eval-graph-beam"></span></div>
+                <div class="eval-graph-node" data-node="score"><span>✓</span><small>score</small></div>
+              </div>
+              <div class="eval-case-track" id="eval-case-track"></div>
+              <div class="eval-scoring-row" id="eval-scoring-row">
+                <div class="eval-score-pulse" data-metric="rag"><span>RAG</span><div class="eval-score-bar"><div class="eval-score-fill"></div></div></div>
+                <div class="eval-score-pulse" data-metric="ground"><span>Ground</span><div class="eval-score-bar"><div class="eval-score-fill"></div></div></div>
+                <div class="eval-score-pulse" data-metric="correct"><span>Correct</span><div class="eval-score-bar"><div class="eval-score-fill"></div></div></div>
+                <div class="eval-score-pulse" data-metric="hitl"><span>HITL</span><div class="eval-score-bar"><div class="eval-score-fill"></div></div></div>
+                <div class="eval-score-pulse" data-metric="latency"><span>Latency</span><div class="eval-score-bar"><div class="eval-score-fill"></div></div></div>
+              </div>
+              <p class="eval-theater-caption" id="eval-theater-caption">Scoring RAG recall · groundedness · correctness…</p>
+            </div>
+            <div class="lf-kpi-grid eval-kpi-grid" id="eval-kpi-grid">
+              <div class="stat-card glossy-card"><span class="stat-label">Gate Status</span><strong id="eval-kpi-status">—</strong></div>
+              <div class="stat-card glossy-card"><span class="stat-label">Cases Passed</span><strong id="eval-kpi-cases">—</strong></div>
+              <div class="stat-card glossy-card"><span class="stat-label">RAG Recall@3</span><strong id="eval-kpi-rag">—</strong></div>
+              <div class="stat-card glossy-card"><span class="stat-label">Groundedness</span><strong id="eval-kpi-ground">—</strong></div>
+              <div class="stat-card glossy-card"><span class="stat-label">Correctness</span><strong id="eval-kpi-correct">—</strong></div>
+              <div class="stat-card glossy-card"><span class="stat-label">P95 Latency</span><strong id="eval-kpi-latency">—</strong></div>
+            </div>
+            <div class="eval-metrics-grid" id="eval-metrics-grid"></div>
+            <div class="dashboard-grid">
+              <div class="card glossy-card">
+                <div class="card-header"><h3>Golden alert results</h3><p class="muted">Per-case metrics from latest run</p></div>
+                <table class="data-table" id="eval-cases-table">
+                  <thead><tr><th>Case</th><th>Expected</th><th>Actual</th><th>RAG</th><th>Ground</th><th>Latency</th><th>Result</th></tr></thead>
+                  <tbody><tr><td colspan="7" class="muted">Run the eval suite to populate results</td></tr></tbody>
+                </table>
+              </div>
+              <div class="card glossy-card">
+                <div class="card-header"><h3>Run history</h3><p class="muted">On-demand eval executions</p></div>
+                <table class="data-table recent-runs-table" id="eval-history-table">
+                  <thead><tr><th>Time</th><th>By</th><th>Cases</th><th>Pass rate</th><th>Gate</th></tr></thead>
+                  <tbody><tr><td colspan="5" class="muted">No runs yet</td></tr></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+          <div id="tab-eval-tools" class="tab-panel hidden">
+            <div class="tools-grid tools-grid-wide glossy-card" id="eval-tools-grid"></div>
+          </div>
+        </section>
+
+        <!-- GOVERNANCE -->
+        <section id="sec-governance" class="section-panel hidden">
+          <div id="tab-gov-overview" class="tab-panel">
+            <div class="gov-posture-banner" id="gov-posture-banner">Loading governance posture…</div>
+            <div class="admin-kpi-grid" id="gov-kpi-grid">
+              <div class="stat-card hover-lift"><div class="stat-card-head"><span class="stat-card-label">Posture</span></div><div class="stat-card-value"><span class="stat-num" id="gov-stat-posture">—</span></div></div>
+              <div class="stat-card hover-lift"><div class="stat-card-head"><span class="stat-card-label">Pending promotions</span></div><div class="stat-card-value"><span class="stat-num" id="gov-stat-pending">—</span></div></div>
+              <div class="stat-card hover-lift"><div class="stat-card-head"><span class="stat-card-label">Failing checks</span></div><div class="stat-card-value"><span class="stat-num" id="gov-stat-failing">—</span></div></div>
+              <div class="stat-card hover-lift"><div class="stat-card-head"><span class="stat-card-label">GitHub</span></div><div class="stat-card-value"><span class="stat-num" id="gov-stat-github">—</span></div></div>
+            </div>
+            <div class="admin-grid">
+              <div class="card glossy-card">
+                <div class="card-header">
+                  <div>
+                    <h3>Required checks</h3>
+                    <p class="muted">Branch protection on <code>main</code> — lint, unit, secrets, eval gate</p>
+                  </div>
+                  <button type="button" class="btn-outline" id="gov-refresh">Refresh</button>
+                </div>
+                <table class="data-table compact-table">
+                  <thead><tr><th>Check</th><th>Conclusion</th><th>When</th></tr></thead>
+                  <tbody id="gov-overview-checks"></tbody>
+                </table>
+              </div>
+              <div class="card glossy-card">
+                <div class="card-header">
+                  <h3>Waiting on reviewers</h3>
+                  <p class="muted">Four-eyes · requester cannot self-approve · production needs admin</p>
+                </div>
+                <div id="gov-overview-promos" class="gov-promo-list"></div>
+              </div>
+            </div>
+          </div>
+          <div id="tab-gov-pipelines" class="tab-panel hidden">
+            <div class="card glossy-card">
+              <div class="card-header">
+                <div>
+                  <h3>CI / eval pipelines</h3>
+                  <p class="muted">GitHub Actions plus on-demand evals from this console</p>
+                </div>
+                <button type="button" class="btn-outline" id="gov-pipelines-refresh">Refresh</button>
+              </div>
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Workflow</th><th>Check</th><th>Conclusion</th><th>Branch</th><th>Triggered by</th><th>Summary</th><th>When</th>
+                  </tr>
+                </thead>
+                <tbody id="gov-pipelines-body"></tbody>
+              </table>
+            </div>
+          </div>
+          <div id="tab-gov-promotions" class="tab-panel hidden">
+            <div class="card glossy-card">
+              <div class="card-header">
+                <div>
+                  <h3>Environment promotions</h3>
+                  <p class="muted">Maps to GitHub Environments <code>staging</code> / <code>production</code></p>
+                </div>
+              </div>
+              <form id="gov-promo-form" class="gov-promo-form">
+                <label>Environment
+                  <select id="gov-promo-env">
+                    <option value="staging">staging</option>
+                    <option value="production">production</option>
+                  </select>
+                </label>
+                <label>SHA
+                  <input id="gov-promo-sha" type="text" placeholder="local or commit SHA" autocomplete="off">
+                </label>
+                <label class="gov-promo-reason">Reason
+                  <input id="gov-promo-reason" type="text" placeholder="Why this should ship" required>
+                </label>
+                <button type="submit" class="btn-primary btn-glossy" id="gov-promo-submit"><span class="btn-shine"></span>Request promotion</button>
+              </form>
+            </div>
+            <div id="gov-promotions-list" class="gov-promo-list"></div>
+          </div>
+          <div id="tab-gov-controls" class="tab-panel hidden">
+            <div class="card glossy-card">
+              <div class="card-header">
+                <div>
+                  <h3>Control catalog</h3>
+                  <p class="muted">Pre-commit, required checks, CODEOWNERS, OPA, HITL dual control</p>
+                </div>
+              </div>
+              <table class="data-table">
+                <thead><tr><th>ID</th><th>Control</th><th>Domain</th><th>Owner</th><th>Evidence</th></tr></thead>
+                <tbody id="gov-controls-body"></tbody>
+              </table>
+            </div>
+            <div class="card glossy-card">
+              <div class="card-header"><h3>Audit log</h3></div>
+              <table class="data-table compact-table">
+                <thead><tr><th>When</th><th>Actor</th><th>Action</th><th>Resource</th><th>Detail</th></tr></thead>
+                <tbody id="gov-audit-body"></tbody>
+              </table>
+            </div>
+          </div>
+          <div id="tab-gov-github" class="tab-panel hidden">
+            <div class="card glossy-card" id="gov-github-card">
+              <div class="card-header">
+                <div>
+                  <h3>GitHub setup</h3>
+                  <p class="muted">Placeholders until you share org / repo details</p>
+                </div>
+                <a class="btn-outline hidden" id="gov-github-actions" target="_blank" rel="noopener">Open Actions</a>
+              </div>
+              <dl class="gov-github-dl" id="gov-github-dl"></dl>
+              <pre class="result-box" id="gov-github-snippet"></pre>
+            </div>
+          </div>
+        </section>
+
+        <!-- ACTIONS -->
+        <section id="sec-actions" class="section-panel hidden">
+          <div id="ticket-toast" class="toast toast-fixed hidden">✓ Ticket created after HITL approval</div>
+          <div id="tab-act-detail" class="tab-panel">
+            <div class="card glossy-card hidden" id="ticket-detail">
+              <div class="card-header">
+                <div><h3>Remediation record</h3><p class="muted">Post-HITL ticket from ticket-api</p></div>
+                <div>
+                  <button class="btn-ghost" id="btn-ticket-json">&lt;/&gt; JSON</button>
+                  <button class="btn-outline" id="btn-ticket-copy">Copy</button>
+                </div>
+              </div>
+              <table class="data-table field-table">
+                <thead><tr><th>Field</th><th>Value</th></tr></thead>
+                <tbody id="ticket-detail-body"></tbody>
+              </table>
+              <div class="meta-footer">
+                <div><small>Created</small><strong id="td-created">—</strong></div>
+                <div><small>Approved by</small><strong id="td-approved">—</strong></div>
+                <div><small>Method</small><strong>HITL</strong></div>
+              </div>
+              <pre id="ticket-json-box" class="result-box hidden"></pre>
+            </div>
+            <p id="tickets-empty" class="muted">No tickets yet — simulate an alert in Operations, approve HITL, then refresh.</p>
+          </div>
+          <div id="tab-act-list" class="tab-panel hidden">
+            <div class="card glossy-card">
+              <div class="card-header">
+                <h3>All tickets</h3>
+                <button class="btn-outline" id="btn-refresh-tickets">Refresh</button>
+              </div>
+              <table class="data-table tickets-table">
+                <thead>
+                  <tr>
+                    <th>ticket_id</th><th>service</th><th>severity</th><th>status</th>
+                    <th>runbook_id</th><th>summary</th><th>approved_by</th>
+                  </tr>
+                </thead>
+                <tbody id="tickets-body"></tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- LEARNING -->
+        <section id="sec-learning" class="section-panel hidden">
+          <div id="tab-learn-notebook" class="tab-panel">
+            <div id="nb-root"></div>
+          </div>
+          <div id="tab-learn-bookmarks" class="tab-panel hidden">
+            <div id="nb-bookmarks-body" class="learn-body"></div>
+          </div>
+          <div id="tab-learn-notes" class="tab-panel hidden">
+            <div id="nb-notes-body" class="learn-body"></div>
+          </div>
+          <div id="tab-learn-highlights" class="tab-panel hidden">
+            <div id="nb-highlights-body" class="learn-body"></div>
+          </div>
+          <div id="tab-learn-designs" class="tab-panel hidden">
+            <div id="nb-designs-body" class="learn-body"></div>
+          </div>
+        </section>
+
+        <!-- ADMIN -->
+        <section id="sec-admin" class="section-panel hidden">
+          <div id="tab-adm-overview" class="tab-panel">
+            <div class="admin-kpi-grid" id="admin-kpi-grid">
+              <div class="stat-card hover-lift"><div class="stat-card-head"><span class="stat-card-label">Total users</span></div><div class="stat-card-value"><span class="stat-num" id="adm-stat-users">—</span></div></div>
+              <div class="stat-card hover-lift"><div class="stat-card-head"><span class="stat-card-label">Active pipelines</span></div><div class="stat-card-value"><span class="stat-num" id="adm-stat-pipelines">—</span></div></div>
+              <div class="stat-card hover-lift"><div class="stat-card-head"><span class="stat-card-label" data-arch-copy="{policy} evaluations">OPA evaluations</span></div><div class="stat-card-value"><span class="stat-num" id="adm-stat-opa">—</span></div></div>
+              <div class="stat-card hover-lift"><div class="stat-card-head"><span class="stat-card-label">Success rate</span></div><div class="stat-card-value"><span class="stat-num" id="adm-stat-success">—</span></div></div>
+            </div>
+            <div class="admin-grid">
+              <div class="card glossy-card">
+                <div class="card-header"><h3>Users by role</h3></div>
+                <div class="admin-role-bars" id="admin-role-bars"></div>
+              </div>
+              <div class="card glossy-card">
+                <div class="card-header">
+                  <h3>Recent agent runs</h3>
+                  <button type="button" class="btn-ghost btn-sm" id="adm-refresh-overview">Refresh</button>
+                </div>
+                <table class="data-table compact-table">
+                  <thead><tr><th>Service</th><th>Status</th><th>Triggered by</th><th>Started</th></tr></thead>
+                  <tbody id="admin-recent-runs"></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+          <div id="tab-adm-agents" class="tab-panel hidden">
+            <div class="card glossy-card">
+              <div class="card-header">
+                <div>
+                  <h3>Agent registry</h3>
+                  <p class="muted">OSS <a href="http://localhost:12121" target="_blank" rel="noopener">agentregistry</a> — orchestrators, workers, MCP servers</p>
+                </div>
+                <div class="card-header-actions">
+                  <a href="http://localhost:12121" target="_blank" rel="noopener" class="btn-ghost btn-sm">Open agentregistry UI</a>
+                  <button type="button" class="btn-ghost btn-sm" id="adm-agents-refresh">Refresh</button>
+                </div>
+              </div>
+              <table class="data-table">
+                <thead>
+                  <tr><th>Name</th><th>Slug</th><th>Kind</th><th>Mode</th><th>Tools</th><th>Risk</th><th>Owner</th></tr>
+                </thead>
+                <tbody id="admin-agents-body"></tbody>
+              </table>
+            </div>
+            <div class="card glossy-card" id="adm-agent-register-card">
+              <div class="card-header">
+                <div>
+                  <h3>Register new agent</h3>
+                  <p class="muted">Admin API → agentregistry <code>POST /v0/apply</code> · slug must be unique kebab-case</p>
+                </div>
+              </div>
+              <form id="adm-agent-register-form" class="profile-form-grid">
+                <label>Slug<input id="adm-agent-slug" pattern="[a-z0-9-]+" placeholder="my-new-worker" required></label>
+                <label>Name<input id="adm-agent-name" placeholder="My New Worker" required></label>
+                <label>Kind
+                  <select id="adm-agent-kind">
+                    <option value="orchestrator">orchestrator</option>
+                    <option value="worker">worker</option>
+                    <option value="mcp_host">mcp_host</option>
+                    <option value="tool">tool</option>
+                  </select>
+                </label>
+                <label>Mode
+                  <select id="adm-agent-mode">
+                    <option value="standalone">standalone</option>
+                    <option value="multi">multi</option>
+                    <option value="mcp">mcp</option>
+                  </select>
+                </label>
+                <label class="span-2">Description<textarea id="adm-agent-desc" rows="2"></textarea></label>
+                <label class="span-2">Tools (comma-separated)<input id="adm-agent-tools" placeholder="query_logs, get_metrics"></label>
+                <label>Risk tier
+                  <select id="adm-agent-risk">
+                    <option value="low">low</option>
+                    <option value="medium" selected>medium</option>
+                    <option value="high">high</option>
+                  </select>
+                </label>
+                <label>Owner<input id="adm-agent-owner" value="platform-team"></label>
+                <div class="span-2 form-actions">
+                  <button type="submit" class="btn-primary btn-glossy btn-sm"><span class="btn-shine"></span>Register agent</button>
+                </div>
+              </form>
+            </div>
+          </div>
+          <div id="tab-adm-users" class="tab-panel hidden">
+            <div class="card glossy-card">
+              <div class="card-header">
+                <div>
+                  <h3>User directory</h3>
+                  <p class="muted">In-memory demo users — wire to IdP or Postgres in production</p>
+                </div>
+                <button type="button" class="btn-primary btn-glossy btn-sm" id="adm-user-add"><span class="btn-shine"></span>Add user</button>
+              </div>
+              <table class="data-table">
+                <thead>
+                  <tr><th>Name</th><th>Email</th><th>Role</th><th>Timezone</th><th>Notifications</th><th></th></tr>
+                </thead>
+                <tbody id="admin-users-body"></tbody>
+              </table>
+            </div>
+            <div id="adm-user-form-card" class="card glossy-card hidden">
+              <div class="card-header">
+                <h3 id="adm-user-form-title">Add user</h3>
+                <button type="button" class="btn-ghost btn-sm" id="adm-user-form-cancel">Cancel</button>
+              </div>
+              <form id="adm-user-form" class="profile-form-grid">
+                <input type="hidden" id="adm-user-edit-email">
+                <label>Full name<input id="adm-user-name" required></label>
+                <label>Email<input id="adm-user-email" type="email" required></label>
+                <label>Role
+                  <select id="adm-user-role" required>
+                    <option value="operator">Operator</option>
+                    <option value="admin">Admin</option>
+                    <option value="viewer">Viewer</option>
+                  </select>
+                </label>
+                <label>Password<input id="adm-user-password" type="password" minlength="6" placeholder="Min 6 characters"></label>
+                <label>Timezone<input id="adm-user-timezone" value="UTC"></label>
+                <div class="profile-form-actions">
+                  <button type="submit" class="btn-primary btn-glossy" id="adm-user-save"><span class="btn-shine"></span>Save user</button>
+                </div>
+              </form>
+            </div>
+          </div>
+          <div id="tab-adm-activity" class="tab-panel hidden">
+            <div class="card glossy-card">
+              <div class="card-header">
+                <h3>HITL decision log</h3>
+                <button type="button" class="btn-ghost btn-sm" id="adm-refresh-activity">Refresh</button>
+              </div>
+              <table class="data-table">
+                <thead><tr><th>Decision</th><th>Service</th><th>Operator</th><th>Reason</th><th>When</th></tr></thead>
+                <tbody id="admin-hitl-body"></tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+      </div>
+    </div>
+      </div>
+
+      <aside class="context-panel glass-card hover-lift hidden" id="context-panel">
+        <div id="ctx-primary-action">
+          <h3>Primary Action</h3>
+          <p class="muted ctx-primary-desc">Launch the LangGraph incident pipeline</p>
+          <button type="button" class="btn-primary btn-glossy btn-interactive block" id="ctx-run-pipeline"><span class="btn-shine"></span>Run Pipeline</button>
+        </div>
+        <div class="hitl-context-card hidden" id="ctx-hitl-card">
+          <div class="hitl-header" style="margin-bottom:12px">
+            <div class="approval-icon-wrap"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg></div>
+            <div>
+              <strong>Human Approval Required</strong>
+              <p class="muted" id="ctx-hitl-text" style="margin-top:4px;font-size:0.82rem"></p>
+            </div>
+          </div>
+          <dl class="meta-list compact" style="margin-bottom:12px">
+            <div><dt>Service</dt><dd id="ctx-hitl-service">—</dd></div>
+            <div><dt>Triggered by</dt><dd>Triage Agent</dd></div>
+          </dl>
+          <label class="hitl-comment-field full" style="margin-bottom:12px">
+            <span>Reason / comment</span>
+            <textarea id="ctx-hitl-comment" rows="2" placeholder="Why approve or reject?"></textarea>
+          </label>
+          <div class="approval-actions">
+            <button type="button" class="btn-danger btn-interactive" id="ctx-reject">Reject</button>
+            <span class="opa-blocked-msg hidden" id="ctx-blocked-msg" data-arch-copy="Blocked by {policy}">Blocked by OPA</span>
+            <button type="button" class="btn-outline hidden" id="ctx-view-opa">Review policy</button>
+            <button type="button" class="btn-success btn-interactive hidden" id="ctx-approve">Approve</button>
+          </div>
+        </div>
+        <div id="ctx-quick-actions">
+          <h3>Quick Actions</h3>
+          <div class="quick-actions-grid ctx-quick-grid">
+            <button type="button" class="quick-action-btn" id="qa-create">+ New Pipeline</button>
+            <button type="button" class="quick-action-btn" id="qa-add-agent">+ Add Agent</button>
+            <button type="button" class="quick-action-btn" id="qa-import">Import Config</button>
+            <button type="button" class="quick-action-btn" id="qa-alerts">View Alerts</button>
+          </div>
+        </div>
+        <div class="empty-state hidden" id="ctx-empty">
+          <div class="empty-state-icon">✦</div>
+          <strong>No active pipeline</strong>
+          <p style="margin:8px 0 12px;font-size:0.85rem">Run the capstone to see live progress</p>
+        </div>
+      </aside>
+    </div>
+  </div>
+</div>
+
+<div id="toast-stack" class="toast-stack" aria-live="polite"></div>
+
+<div id="mcp-add-server-modal" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="mcp-add-server-title">
+  <div class="modal-card glossy-card profile-modal">
+    <div class="modal-head">
+      <div>
+        <h2 id="mcp-add-server-title">Add MCP server</h2>
+        <p class="muted">Register a custom HTTP MCP endpoint (Basic Auth)</p>
+      </div>
+      <button type="button" class="icon-btn" id="mcp-add-server-cancel" aria-label="Close">✕</button>
+    </div>
+    <div class="profile-form-grid">
+      <label class="span-2">Display name<input id="mcp-add-name" placeholder="My MCP server"></label>
+      <label class="span-2">URL<input id="mcp-add-url" type="url" placeholder="http://localhost:8081"></label>
+      <label>Username<input id="mcp-add-user" value="mcp"></label>
+      <label>Password<input id="mcp-add-pass" type="password" placeholder="Optional — enter on connect"></label>
+    </div>
+    <div class="modal-actions">
+      <button type="button" class="btn-ghost" id="mcp-add-server-cancel-2">Cancel</button>
+      <button type="button" class="btn-primary btn-glossy" id="mcp-add-server-save"><span class="btn-shine"></span>Save server</button>
+    </div>
+  </div>
+</div>
+
+<div id="profile-modal" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="profile-modal-title">
+  <div class="modal-card glossy-card profile-modal">
+    <div class="modal-head">
+      <div>
+        <h2 id="profile-modal-title">Profile settings</h2>
+        <p class="muted">Account preferences and security</p>
+      </div>
+      <button type="button" class="icon-btn" id="profile-modal-close" aria-label="Close profile settings">✕</button>
+    </div>
+    <form id="profile-form">
+      <div class="profile-form-grid">
+        <label>Display name<input id="profile-name" required></label>
+        <label>Email<input id="profile-email" type="email" readonly></label>
+        <label>Role<input id="profile-role" readonly></label>
+        <label>Timezone
+          <select id="profile-timezone">
+            <option value="UTC">UTC</option>
+            <option value="Asia/Kolkata">Asia/Kolkata</option>
+            <option value="America/New_York">America/New_York</option>
+            <option value="Europe/London">Europe/London</option>
+            <option value="America/Los_Angeles">America/Los_Angeles</option>
+          </select>
+        </label>
+        <label>Theme preference
+          <select id="profile-theme">
+            <option value="light">Light</option>
+            <option value="dark">Dark</option>
+          </select>
+        </label>
+      </div>
+      <fieldset class="profile-toggle-fieldset">
+        <legend>Notifications</legend>
+        <label class="toggle-row"><input type="checkbox" id="profile-notify-hitl"> HITL approval requests</label>
+        <label class="toggle-row"><input type="checkbox" id="profile-notify-pipeline"> Pipeline completion events</label>
+      </fieldset>
+      <div class="profile-form-actions">
+        <button type="submit" class="btn-primary btn-glossy" id="profile-save-btn"><span class="btn-shine"></span>Save profile</button>
+      </div>
+    </form>
+    <div class="profile-divider"></div>
+    <h3 class="profile-subhead">Change password</h3>
+    <form id="password-form" class="profile-form-grid">
+      <label>Current password<input id="profile-current-password" type="password" autocomplete="current-password"></label>
+      <label>New password<input id="profile-new-password" type="password" autocomplete="new-password" minlength="6"></label>
+      <div class="profile-form-actions">
+        <button type="submit" class="btn-outline" id="profile-password-btn">Update password</button>
+      </div>
+      <p id="profile-msg" class="profile-msg muted"></p>
+    </form>
+  </div>
+</div>
+
+<script src="/static/icons.js?v=design1-6.20-governance"></script>
+<script>
+  (function () {
+    const capture = new URLSearchParams(location.search).get('capture');
+    if (!capture) return;
+    localStorage.setItem('aiops_token', 'capture-mode');
+    document.getElementById('login-screen')?.classList.add('hidden');
+    document.getElementById('app-screen')?.classList.remove('hidden');
+  })();
+  document.getElementById('login-logo').innerHTML = macIcon('logo', 'md');
+  document.getElementById('header-logo').innerHTML = `<span class="mac-icon-shine"></span>${ICONS.logo}`;
+</script>
+<script src="/static/theme.js?v=design1-6.20-governance"></script>
+<script src="/static/designs/d1/stack.js?v=design1-6.20-governance"></script>
+<script src="/static/designs/d2/stack.js?v=design1-6.20-governance"></script>
+<script src="/static/designs/d3/stack.js?v=design1-6.20-governance"></script>
+<script src="/static/designs.js?v=design1-6.20-governance"></script>
+<script src="/static/app.js?v=design1-6.20-governance"></script>
+<script src="/static/learning-tips.js?v=design1-6.20-governance"></script>
+<script src="/static/learn.js?v=design1-6.20-governance"></script>
+<script src="/static/notebook-diagrams.js?v=design1-6.20-governance"></script>
+<script src="/static/notebook.js?v=design1-6.20-governance"></script>
+</body>
+</html>

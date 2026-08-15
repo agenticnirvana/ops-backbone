@@ -1,0 +1,242 @@
+apiVersion: ar.dev/v1alpha1
+kind: MCPServer
+metadata:
+  name: mcp-ops-server
+  namespace: design1
+  tag: latest
+  labels:
+    design1.io/builtin: "true"
+    design1.io/kind: "mcp_host"
+    design1.io/mode: "mcp"
+    design1.io/owner: "platform-team"
+    design1.io/risk-tier: "medium"
+    design1.io/status: "active"
+  annotations:
+    design1.io/tools: "query_logs, retrieve_runbooks, get_metrics, create_ticket"
+spec:
+  title: "Ops MCP Server"
+  description: "FastAPI-hosted MCP tool server with HTTP Basic Auth — logs, runbooks, metrics, tickets."
+  remote:
+    type: streamable-http
+    url: http://mcp-server:8081
+---
+apiVersion: ar.dev/v1alpha1
+kind: MCPServer
+metadata:
+  name: mcp-policy-server
+  namespace: design1
+  tag: latest
+  labels:
+    design1.io/builtin: "true"
+    design1.io/kind: "mcp_host"
+    design1.io/mode: "mcp"
+    design1.io/owner: "platform-team"
+    design1.io/risk-tier: "low"
+    design1.io/status: "active"
+  annotations:
+    design1.io/tools: "check_opa_policy, list_policy_rules, preview_hitl_gate"
+spec:
+  title: "Policy & Guardrails MCP Server"
+  description: "OPA policy preview, rule catalog, and HITL gate simulation — read-only guardrails exploration."
+  remote:
+    type: streamable-http
+    url: http://mcp-policy-server:8082
+---
+apiVersion: ar.dev/v1alpha1
+kind: MCPServer
+metadata:
+  name: mcp-rag-server
+  namespace: design1
+  tag: latest
+  labels:
+    design1.io/builtin: "true"
+    design1.io/kind: "mcp_host"
+    design1.io/mode: "mcp"
+    design1.io/owner: "platform-team"
+    design1.io/risk-tier: "low"
+    design1.io/status: "active"
+  annotations:
+    design1.io/tools: "retrieve_runbooks, list_runbooks, get_runbook_by_id"
+spec:
+  title: "Runbook Knowledge MCP Server"
+  description: "Chroma RAG retrieval plus runbook catalog tools — knowledge-only MCP split for exploration."
+  remote:
+    type: streamable-http
+    url: http://mcp-rag-server:8083
+---
+apiVersion: ar.dev/v1alpha1
+kind: Agent
+metadata:
+  name: incident-worker
+  namespace: design1
+  tag: latest
+  labels:
+    design1.io/builtin: "true"
+    design1.io/kind: "worker"
+    design1.io/mode: "multi"
+    design1.io/owner: "sre-oncall"
+    design1.io/risk-tier: "medium"
+    design1.io/status: "active"
+  annotations:
+    design1.io/tools: "create_ticket"
+spec:
+  title: "Incident Worker"
+  description: "Creates remediation tickets after HITL approval."
+---
+apiVersion: ar.dev/v1alpha1
+kind: Agent
+metadata:
+  name: logs-worker
+  namespace: design1
+  tag: latest
+  labels:
+    design1.io/builtin: "true"
+    design1.io/kind: "worker"
+    design1.io/mode: "multi"
+    design1.io/owner: "sre-oncall"
+    design1.io/risk-tier: "low"
+    design1.io/status: "active"
+  annotations:
+    design1.io/tools: "query_logs"
+spec:
+  title: "Logs Worker"
+  description: "Queries Loki for error patterns related to the alert."
+---
+apiVersion: ar.dev/v1alpha1
+kind: Agent
+metadata:
+  name: mcp-agent-runner
+  namespace: design1
+  tag: latest
+  labels:
+    design1.io/builtin: "true"
+    design1.io/kind: "orchestrator"
+    design1.io/mode: "mcp"
+    design1.io/owner: "platform-team"
+    design1.io/risk-tier: "medium"
+    design1.io/status: "active"
+  annotations:
+    design1.io/tools: "mcp_http_client"
+spec:
+  title: "MCP Agent Runner"
+  description: "LangGraph agent that calls hosted MCP tools over HTTP instead of in-process imports."
+  mcpServers:
+    - kind: MCPServer
+      name: mcp-ops-server
+      tag: latest
+---
+apiVersion: ar.dev/v1alpha1
+kind: Agent
+metadata:
+  name: metrics-worker
+  namespace: design1
+  tag: latest
+  labels:
+    design1.io/builtin: "true"
+    design1.io/kind: "worker"
+    design1.io/mode: "multi"
+    design1.io/owner: "sre-oncall"
+    design1.io/risk-tier: "low"
+    design1.io/status: "active"
+  annotations:
+    design1.io/tools: "get_metrics"
+spec:
+  title: "Metrics Worker"
+  description: "Queries Prometheus for CPU, latency, and error-rate anomalies."
+---
+apiVersion: ar.dev/v1alpha1
+kind: Agent
+metadata:
+  name: remediation-worker
+  namespace: design1
+  tag: latest
+  labels:
+    design1.io/builtin: "true"
+    design1.io/kind: "worker"
+    design1.io/mode: "multi"
+    design1.io/owner: "sre-oncall"
+    design1.io/risk-tier: "high"
+    design1.io/status: "active"
+  annotations:
+    design1.io/tools: "llm_recommend"
+spec:
+  title: "Remediation Worker"
+  description: "Synthesizes runbook + observability context into actionable recommendations."
+---
+apiVersion: ar.dev/v1alpha1
+kind: Agent
+metadata:
+  name: runbook-worker
+  namespace: design1
+  tag: latest
+  labels:
+    design1.io/builtin: "true"
+    design1.io/kind: "worker"
+    design1.io/mode: "multi"
+    design1.io/owner: "sre-oncall"
+    design1.io/risk-tier: "low"
+    design1.io/status: "active"
+  annotations:
+    design1.io/tools: "retrieve_runbooks"
+spec:
+  title: "Runbook Worker"
+  description: "Retrieves matching runbooks from Chroma RAG."
+---
+apiVersion: ar.dev/v1alpha1
+kind: Agent
+metadata:
+  name: sre-supervisor
+  namespace: design1
+  tag: latest
+  labels:
+    design1.io/builtin: "true"
+    design1.io/kind: "orchestrator"
+    design1.io/mode: "multi"
+    design1.io/owner: "platform-team"
+    design1.io/risk-tier: "medium"
+    design1.io/status: "active"
+  annotations:
+    design1.io/tools: "routing, delegation"
+spec:
+  title: "SRE Supervisor Orchestrator"
+  description: "LangGraph supervisor that delegates alert triage to specialist worker agents."
+---
+apiVersion: ar.dev/v1alpha1
+kind: Agent
+metadata:
+  name: standalone-orchestrator
+  namespace: design1
+  tag: latest
+  labels:
+    design1.io/builtin: "true"
+    design1.io/kind: "orchestrator"
+    design1.io/mode: "standalone"
+    design1.io/owner: "platform-team"
+    design1.io/risk-tier: "medium"
+    design1.io/status: "active"
+  annotations:
+    design1.io/tools: "runbook_rag, log_query, metrics_query, policy_check, ticket_create"
+spec:
+  title: "SRE Standalone Orchestrator"
+  description: "Single LangGraph pipeline — classify, RAG, logs, metrics, recommend, HITL, execute."
+---
+apiVersion: ar.dev/v1alpha1
+kind: Agent
+metadata:
+  name: triage-worker
+  namespace: design1
+  tag: latest
+  labels:
+    design1.io/builtin: "true"
+    design1.io/kind: "worker"
+    design1.io/mode: "multi"
+    design1.io/owner: "sre-oncall"
+    design1.io/risk-tier: "low"
+    design1.io/status: "active"
+  annotations:
+    design1.io/tools: "llm_classify"
+spec:
+  title: "Triage Worker"
+  description: "Classifies incident severity and sets HITL requirements."
+
+

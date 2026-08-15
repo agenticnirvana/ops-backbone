@@ -1,0 +1,6 @@
+{
+  "service": "order-service",
+  "severity": "P1",
+  "error_summary": "Database connection pool exhausted",
+  "log_snippet": "pool wait time exceeded 2 seconds"
+}

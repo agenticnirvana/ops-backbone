@@ -1,0 +1,2 @@
+{"timestamp":"2026-07-18T09:55:00Z","level":"ERROR","service":"auth-service","message":"JWT validation failures increasing"}
+{"timestamp":"2026-07-18T09:56:00Z","level":"WARN","service":"auth-service","message":"5xx error rate above 5% threshold"}

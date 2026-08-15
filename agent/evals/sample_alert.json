@@ -1,0 +1,6 @@
+{
+  "service": "payment-api",
+  "severity": "P1",
+  "error_summary": "High CPU usage above 90%",
+  "log_snippet": "connection timeout retry storm after deploy v2.4.1"
+}

@@ -1,0 +1,6 @@
+{
+  "service": "auth-service",
+  "severity": "P2",
+  "error_summary": "5xx error rate spike",
+  "log_snippet": "JWT validation failures increasing"
+}

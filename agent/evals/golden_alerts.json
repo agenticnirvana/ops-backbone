@@ -1,0 +1,106 @@
+[
+  {
+    "id": "eval-payment-cpu",
+    "alert": {
+      "service": "payment-api",
+      "severity": "P1",
+      "error_summary": "High CPU usage above 90%",
+      "log_snippet": "connection timeout retry storm after deploy v2.4.1"
+    },
+    "expected_runbook_id": "payment-high-cpu",
+    "grounded_keywords": ["rollback", "scale", "deploy"],
+    "expects_hitl": true,
+    "expects_ticket": false
+  },
+  {
+    "id": "eval-auth-errors",
+    "alert": {
+      "service": "auth-service",
+      "severity": "P2",
+      "error_summary": "5xx error rate spike",
+      "log_snippet": "JWT validation failures increasing"
+    },
+    "expected_runbook_id": "auth-error-spike",
+    "grounded_keywords": ["certificate", "token", "idp"],
+    "expects_hitl": false,
+    "expects_ticket": false
+  },
+  {
+    "id": "eval-db-pool",
+    "alert": {
+      "service": "order-service",
+      "severity": "P1",
+      "error_summary": "Database connection pool exhausted",
+      "log_snippet": "pool wait time exceeded 2 seconds"
+    },
+    "expected_runbook_id": "db-pool-exhausted",
+    "grounded_keywords": ["connection", "pool", "query"],
+    "expects_hitl": true,
+    "expects_ticket": false
+  },
+  {
+    "id": "eval-checkout-redis",
+    "alert": {
+      "service": "checkout-service",
+      "severity": "P1",
+      "error_summary": "HTTP 500 spike on /checkout",
+      "log_snippet": "Timeout waiting for connection pool (Redis)"
+    },
+    "expected_runbook_id": "checkout-redis-pool",
+    "grounded_keywords": ["redis", "connection", "REDIS_MAX_CONNECTIONS"],
+    "expects_hitl": true,
+    "expects_ticket": false
+  },
+  {
+    "id": "eval-payment-cpu-low-sev",
+    "alert": {
+      "service": "payment-api",
+      "severity": "P3",
+      "error_summary": "Elevated CPU 75%",
+      "log_snippet": "gradual increase over 30 minutes"
+    },
+    "expected_runbook_id": "payment-high-cpu",
+    "grounded_keywords": ["scale", "cpu"],
+    "expects_hitl": false,
+    "expects_ticket": false
+  },
+  {
+    "id": "eval-auth-cert-expiry",
+    "alert": {
+      "service": "auth-service",
+      "severity": "P1",
+      "error_summary": "TLS certificate expiring in 24h",
+      "log_snippet": "cert expiry warning from ingress controller"
+    },
+    "expected_runbook_id": "auth-error-spike",
+    "grounded_keywords": ["certificate", "token"],
+    "expects_hitl": true,
+    "expects_ticket": false
+  },
+  {
+    "id": "eval-db-slow-queries",
+    "alert": {
+      "service": "order-service",
+      "severity": "P2",
+      "error_summary": "Slow query latency p95 above 2s",
+      "log_snippet": "SELECT orders timing out intermittently"
+    },
+    "expected_runbook_id": "db-pool-exhausted",
+    "grounded_keywords": ["pool", "query"],
+    "expects_hitl": false,
+    "expects_ticket": false
+  },
+  {
+    "id": "eval-checkout-deploy",
+    "alert": {
+      "service": "checkout-service",
+      "severity": "P1",
+      "error_summary": "Error rate spike after deploy v3.2.0",
+      "log_snippet": "Redis connection refused after config change"
+    },
+    "expected_runbook_id": "checkout-redis-pool",
+    "grounded_keywords": ["redis", "connection"],
+    "expects_hitl": true,
+    "expects_ticket": false
+  }
+]
